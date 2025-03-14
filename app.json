@@ -1,0 +1,105 @@
+{
+  "expo": {
+    "name": "jogatta",
+    "slug": "jogatta",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "jogatta",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.debugmm.jogatta",
+      "buildNumber": "1.0.0",
+      "config": {
+        "googleMapsApiKey": "SUA_CHAVE_GOOGLE_MAPS_AQUI"
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Este aplicativo requer acesso à câmera para capturar fotos.",
+        "NSPhotoLibraryUsageDescription": "Este aplicativo precisa acessar sua galeria para escolher imagens.",
+        "NSLocationWhenInUseUsageDescription": "O aplicativo precisa de acesso à sua localização para mostrar quadras próximas."
+      }
+    },
+    "android": {
+      "jsEngine": "jsc",
+      "icon": "./assets/images/icon.png",
+      "splash": {
+        "image": "./assets/images/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.debugmm.jogatta",
+      "versionCode": 1,
+      "permissions": [
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO",
+        "CAMERA",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "jogatta",
+              "host": "convite",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 320,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0df59514-07de-4e3e-bc1b-4e9cf3a8f8c5"
+      }
+    },
+    "owner": "debugmm",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/0df59514-07de-4e3e-bc1b-4e9cf3a8f8c5"
+    },
+    "runtimeVersion": "1.0.0"
+  }
+}
