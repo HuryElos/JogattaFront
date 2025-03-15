@@ -16,18 +16,15 @@ import {
   ScrollView
 } from 'react-native';
 
-// Para outros ícones que você queira manter do expo-vector-icons:
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
 import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import AuthContext from '../contexts/AuthContext';
 import api from '../services/api';
 
 const { width } = Dimensions.get('window');
-const brandColor = '#FF6B00'; // cor principal de destaque
+const brandColor = '#E0E0E0'; // cor principal
 
 const STATUS_COLORS = {
   ativa: '#34D399',
@@ -52,12 +49,16 @@ export default function HomeScreen({ navigation }) {
   const [pastedText, setPastedText] = useState('');
   const [tempPlayersData, setTempPlayersData] = useState([]);
 
+  // Contagem de gênero
   const genderCounts = useMemo(() => {
-    return tempPlayersData.reduce((acc, p) => {
-      if (p.genero === 'M') acc.masculino++;
-      if (p.genero === 'F') acc.feminino++;
-      return acc;
-    }, { masculino: 0, feminino: 0 });
+    return tempPlayersData.reduce(
+      (acc, p) => {
+        if (p.genero === 'M') acc.masculino++;
+        if (p.genero === 'F') acc.feminino++;
+        return acc;
+      },
+      { masculino: 0, feminino: 0 }
+    );
   }, [tempPlayersData]);
 
   useFocusEffect(
@@ -197,7 +198,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => navigation.navigate('LiveRoom', { id_jogo: partida.id_jogo })}
       >
         <View style={styles.partidaIconContainer}>
-          <MaterialCommunityIcons name="volleyball" size={24} color={brandColor} />
+          <MaterialCommunityIcons name="volleyball" size={24} color="#FF6B00" />
         </View>
         <Text style={styles.partidaTitle}>Partida {partida.id_jogo}</Text>
         <View style={styles.partidaInfo}>
@@ -227,7 +228,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <MaterialCommunityIcons name="account-circle-outline" size={24} color="#000" />
-            <Text style={styles.headerText}>Olá, {user?.nome || 'Fulane'}!</Text>
+            <Text style={styles.headerText}>Olá, {user?.apelido || 'Fulane'}!</Text>
           </View>
           <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
             <MaterialCommunityIcons name="bell-outline" size={24} color="#000" />
@@ -244,29 +245,22 @@ export default function HomeScreen({ navigation }) {
           />
         </View>
 
-        {/* MENSAGEM DE DESTAQUE */}
-        <View style={styles.messageContainer}>
-          <Text style={styles.messageText}>Alguma besteira falando sobre o app</Text>
+        {/* BANNER */}
+        <View style={styles.bannerContainer}>
+          <Text style={styles.bannerText}>Alguma besteira falando sobre o app</Text>
         </View>
 
-        {/* QUICK ACTIONS */}
+        {/* AÇÕES RÁPIDAS */}
         <View style={styles.quickActions}>
-          {/* Criar partida */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() =>
               navigation.navigate('MainApp', {
                 screen: 'Equilibrar Times',
-                params: { screen: 'CriarJogo' }
+                params: { screen: 'CriarJogo' },
               })
             }
           >
-            {/*
-              Substituindo pela imagem local:
-              <ImageView android:src="@drawable/add_circle_24" />
-              
-              Em React Native, fazemos:
-            */}
             <Image
               source={require('../../assets/icons/add_circle.png')}
               style={{ width: 24, height: 24 }}
@@ -274,15 +268,10 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.actionText}>Criar{'\n'}partida</Text>
           </TouchableOpacity>
 
-          {/* Entrar na partida */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate('LiveRoom')}
           >
-            {/*
-              Substituindo pela imagem local:
-              <ImageView android:src="@drawable/input_circle_24" />
-            */}
             <Image
               source={require('../../assets/icons/input_circle.png')}
               style={{ width: 24, height: 24 }}
@@ -290,15 +279,10 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.actionText}>Entrar na{'\n'}partida</Text>
           </TouchableOpacity>
 
-          {/* Importar lista */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setShowPasteModal(true)}
           >
-            {/*
-              Substituindo pela imagem local:
-              <ImageView android:src="@drawable/list_alt_add_24" />
-            */}
             <Image
               source={require('../../assets/icons/list_alt_add.png')}
               style={{ width: 24, height: 24 }}
@@ -306,15 +290,10 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.actionText}>Importar{'\n'}lista</Text>
           </TouchableOpacity>
 
-          {/* Equilibrar times */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate('Equilibrar Times')}
           >
-            {/*
-              Substituindo pela imagem local:
-              <ImageView android:src="@drawable/groups_3_24" />
-            */}
             <Image
               source={require('../../assets/icons/groups_3.png')}
               style={{ width: 24, height: 24 }}
@@ -327,19 +306,32 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Explorar quadras</Text>
         <View style={styles.exploreContainer}>
           <View style={styles.exploreRow}>
+            {/* Card da esquerda: 2 partes (topo cinza + faixa laranja) */}
             <TouchableOpacity
               style={styles.leftCard}
               onPress={() => navigation.navigate('ExploreQuadras')}
             >
-              <Image style={styles.mapImage} />
-              <Text style={styles.mapText}>Quadras perto de você</Text>
+              {/* Parte de cima (simula "mapa") */}
+              <View style={styles.mapTop} />
+              {/* Parte de baixo (faixa laranja com texto) */}
+              <View style={styles.mapBottom}>
+                <Text style={styles.mapBottomText}>Quadras perto de você</Text>
+              </View>
             </TouchableOpacity>
+
+            {/* Coluna da direita: 2 cards cinza */}
             <View style={styles.rightColumn}>
-              <TouchableOpacity style={styles.topRightCard}>
-                <Text style={styles.rightCardText}>Seus amigos vão</Text>
+              <TouchableOpacity style={styles.rightCard}>
+                <View style={styles.rightCardTop} />
+                <View style={styles.rightCardBottom}>
+                  <Text style={styles.rightCardText}>Seus amigos vão</Text>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.bottomRightCard}>
-                <Text style={styles.rightCardText}>Descubra quadras</Text>
+              <TouchableOpacity style={styles.rightCard}>
+                <View style={styles.rightCardTop} />
+                <View style={styles.rightCardBottom}>
+                  <Text style={styles.rightCardText}>Descubra quadras</Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -357,9 +349,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      
-
-      {/* MODAIS */}
+      {/* MODAL: COLAR LISTA */}
       <Modal
         visible={showPasteModal}
         animationType="slide"
@@ -399,6 +389,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
 
+      {/* MODAL: CONFIRMAR JOGADORES (GÊNERO) */}
       <Modal
         visible={showProcessedModal}
         animationType="slide"
@@ -447,14 +438,14 @@ export default function HomeScreen({ navigation }) {
                       style={[
                         styles.genderButton,
                         item.genero === 'M' && styles.genderButtonSelected,
-                        { backgroundColor: item.genero === 'M' ? '#4A90E2' : '#F1F5F9' }
+                        { backgroundColor: item.genero === 'M' ? '#4A90E2' : '#F1F5F9' },
                       ]}
                       onPress={() => handleGenderSelect(item, 'M')}
                     >
                       <Text
                         style={[
                           styles.genderButtonText,
-                          item.genero === 'M' && styles.genderButtonTextSelected
+                          item.genero === 'M' && styles.genderButtonTextSelected,
                         ]}
                       >
                         M
@@ -464,14 +455,14 @@ export default function HomeScreen({ navigation }) {
                       style={[
                         styles.genderButton,
                         item.genero === 'F' && styles.genderButtonSelected,
-                        { backgroundColor: item.genero === 'F' ? '#E91E63' : '#F1F5F9' }
+                        { backgroundColor: item.genero === 'F' ? '#E91E63' : '#F1F5F9' },
                       ]}
                       onPress={() => handleGenderSelect(item, 'F')}
                     >
                       <Text
                         style={[
                           styles.genderButtonText,
-                          item.genero === 'F' && styles.genderButtonTextSelected
+                          item.genero === 'F' && styles.genderButtonTextSelected,
                         ]}
                       >
                         F
@@ -486,10 +477,10 @@ export default function HomeScreen({ navigation }) {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                !tempPlayersData.every(p => p.genero) && styles.primaryButtonDisabled
+                !tempPlayersData.every((p) => p.genero) && styles.primaryButtonDisabled,
               ]}
               onPress={handleConfirmProcessedPlayers}
-              disabled={!tempPlayersData.every(p => p.genero)}
+              disabled={!tempPlayersData.every((p) => p.genero)}
             >
               <Text style={styles.buttonText}>Confirmar Jogadores</Text>
             </TouchableOpacity>
@@ -497,6 +488,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
 
+      {/* MODAL: ESCOLHER FLUXO (MANUAL OU AUTOMÁTICO) */}
       <Modal
         visible={showFlowModal}
         animationType="fade"
@@ -543,16 +535,18 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-/* Estilos (iguais ao que você já tinha) */
 const styles = StyleSheet.create({
-  safeArea: { 
-    flex: 1, 
+  /* CONTAINERS GERAIS */
+  safeArea: {
+    flex: 1,
     backgroundColor: '#FFF',
   },
   container: {
     flex: 1,
     backgroundColor: '#FFF',
   },
+
+  /* HEADER */
   header: {
     flexDirection: 'row',
     padding: 16,
@@ -566,9 +560,11 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#000',
   },
+
+  /* SEARCH BAR */
   searchContainer: {
     flexDirection: 'row',
     backgroundColor: '#F2F2F2',
@@ -584,17 +580,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  messageContainer: {
-    backgroundColor: '#E5E5E5',
+
+  /* BANNER */
+  bannerContainer: {
+    backgroundColor: '#D8D8D8',
     marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 20,
+    marginBottom: 24,
     borderRadius: 12,
+    minHeight: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  messageText: {
-    fontSize: 14,
+  bannerText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#333',
+    textAlign: 'center',
   },
+
+  /* AÇÕES RÁPIDAS */
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -610,6 +616,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: '#333',
   },
+
+  /* TÍTULOS DE SEÇÃO */
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -617,6 +625,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: '#111',
   },
+
+  /* EXPLORAR QUADRAS */
   exploreContainer: {
     marginHorizontal: 16,
     marginBottom: 16,
@@ -627,48 +637,73 @@ const styles = StyleSheet.create({
   },
   leftCard: {
     flex: 1,
-    backgroundColor: '#F6F6F6',
     borderRadius: 12,
+    backgroundColor: '#FFF',
+    // altura para ficar próximo ao design
+    height: 160,
     overflow: 'hidden',
+    // sombra leve
+    elevation: 3, // Android
+    shadowColor: '#000', // iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  mapImage: {
-    width: '100%',
-    height: 100,
-    backgroundColor: '#E0E0E0',
+  // Topo cinza
+  mapTop: {
+    flex: 2,
+    backgroundColor: '#D8D8D8',
   },
-  mapText: {
-    padding: 12,
+  // Faixa laranja
+  mapBottom: {
+    flex: 1,
+    backgroundColor: brandColor,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapBottomText: {
+    color: 'black',
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: '600',
   },
   rightColumn: {
     flex: 1,
     justifyContent: 'space-between',
   },
-  topRightCard: {
+  rightCard: {
     flex: 1,
-    backgroundColor: '#EBEBEB',
+    height: 72,
     borderRadius: 12,
+    backgroundColor: '#D8D8D8',
     marginBottom: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  bottomRightCard: {
+  rightCardTop: {
     flex: 1,
-    backgroundColor: '#EBEBEB',
-    borderRadius: 12,
+  },
+  rightCardBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
   },
   rightCardText: {
     fontSize: 14,
+    fontWeight: '600',
     color: '#333',
-    fontWeight: '500',
     textAlign: 'center',
   },
+
+  /* PRÓXIMAS PARTIDAS */
   nextMatchesHeader: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -679,11 +714,11 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6B00',
+    color: 'black',
   },
   partidasContainer: {
     marginHorizontal: 16,
-    marginBottom: 80,
+    marginBottom: 60,
   },
   partidaCard: {
     backgroundColor: '#F8F8F8',
@@ -715,7 +750,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   acessarButton: {
-    backgroundColor: '#FF6B00',
+    backgroundColor:  '#FF6B00',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
@@ -726,35 +761,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    flexDirection: 'row',
-    paddingVertical: 8,
-    backgroundColor: '#FFF',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopColor: '#E2E8F0',
-    borderTopWidth: 1,
-  },
-  navButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  navButtonActive: {
-    position: 'relative',
-  },
-  navText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  navTextActive: {
-    color: '#FF6B00',
-  },
+
+  /* MODAIS GERAIS */
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -809,6 +817,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
+
+  /* MODAL: CONFIRMAR JOGADORES */
   genderCountContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -891,6 +901,8 @@ const styles = StyleSheet.create({
   genderButtonTextSelected: {
     color: '#FFF',
   },
+
+  /* MODAL: ESCOLHER FLUXO */
   flowModalContent: {
     backgroundColor: '#FFF',
     borderTopLeftRadius: 24,

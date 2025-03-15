@@ -5,6 +5,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { Provider as PaperProvider } from 'react-native-paper';
 import * as SplashScreen from 'expo-splash-screen';
 import { LogBox } from 'react-native'; // Importar LogBox
+import './src/config/intl'; // Importando a configuração do Intl
 
 // Ignorar warnings específicos
 LogBox.ignoreLogs([
