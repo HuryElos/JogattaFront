@@ -286,17 +286,23 @@ const ConvidarAmigos = ({ navigation, route }) => {
     );
 
     if (fluxo === 'manual2') {
-      navigation.navigate('ManualJogoTwoPagesScreen', {
-        amigosSelecionados: jogadoresSelecionados,
-        fluxo,
+      navigation.navigate('JogosFlow', {
+        screen: 'ManualJogoTwoPagesScreen',
+        params: {
+          amigosSelecionados: jogadoresSelecionados,
+          fluxo,
+        },
       });
     } else if (fluxo === 'manual') {
-      navigation.navigate('ManualJogoScreen', {
-        players: jogadoresSelecionados,
-        fluxo,
+      navigation.navigate('JogosFlow', {
+        screen: 'ManualJogoScreen',
+        params: {
+          players: jogadoresSelecionados,
+          fluxo,
+        },
       });
     } else if (fluxo === 'habilidades' || fluxo === 'automatico' || fluxo === 'offline') {
-      navigation.navigate('Equilibrar Times', {
+      navigation.navigate('JogosFlow', {
         screen: 'JogoScreen',
         params: {
           amigosSelecionados: jogadoresSelecionados,
@@ -304,9 +310,12 @@ const ConvidarAmigos = ({ navigation, route }) => {
         },
       });
     } else {
-      navigation.navigate('CriarJogo', {
-        amigosSelecionados: jogadoresSelecionados,
-        fluxo,
+      navigation.navigate('JogosFlow', {
+        screen: 'CriarJogo',
+        params: {
+          amigosSelecionados: jogadoresSelecionados,
+          fluxo,
+        },
       });
     }
   }, [selecionados, amigosAll, grupos, listaPlayers, navigation, fluxo]);
@@ -620,7 +629,7 @@ const ConvidarAmigos = ({ navigation, route }) => {
 export default ConvidarAmigos;
 
 /** 
- * Estilos em “wireframe básico”:
+ * Estilos em "wireframe básico":
  * apenas bordas e cores neutras, sem sombras fortes ou tons vibrantes.
  */
 const styles = StyleSheet.create({
@@ -785,7 +794,7 @@ const styles = StyleSheet.create({
 });
 
 /**
- * Estilos do modal “Colar Lista”
+ * Estilos do modal "Colar Lista"
  */
 const wireModalStyles = StyleSheet.create({
   modalContainer: {

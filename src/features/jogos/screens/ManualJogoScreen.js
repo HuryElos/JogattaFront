@@ -1,3 +1,5 @@
+// src/features/jogos/screens/ManualJogoScreen.js
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,11 +15,8 @@ import {
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 
-/* ===========================================================
-   Função para retornar a cor de cada time
-   =========================================================== */
 function getTimeColor(timeIndex) {
-  if (timeIndex < 0) return '#999'; // se -1 (sem time)
+  if (timeIndex < 0) return '#999';
   const colors = [
     '#EF4444', // vermelho
     '#10B981', // verde
@@ -39,168 +38,110 @@ const ANIMALS_LIST = [
 ];
 
 export default function ManualJogoScreen({ route, navigation }) {
-  // Ajuste AQUI: leia "players" em vez de "amigosSelecionados"
   const { players = [], fluxo = 'manual' } = route.params || {};
 
-  // Quantos jogadores por time
   const [playersPerTeam, setPlayersPerTeam] = useState(4);
   const options = [2, 3, 4, 5, 6];
-
-  // Se confirmamos a quantidade
   const [confirmed, setConfirmed] = useState(false);
-  // Quantos times => calculado
   const [numTeams, setNumTeams] = useState(0);
-
-  // Se a conta não bate
   const [needExtraPlayers, setNeedExtraPlayers] = useState(0);
   const [showPopUp, setShowPopUp] = useState(false);
-  // Se decidimos criar time com -1 jogador no final
   const [timeWithOneLess, setTimeWithOneLess] = useState(false);
-
-  // Lista de jogadores e atribuição de time
   const [allPlayers, setAllPlayers] = useState([]);
   const [playerAssignments, setPlayerAssignments] = useState({});
-
-  // Qual time está selecionado
   const [selectedTimeIndex, setSelectedTimeIndex] = useState(0);
-
-  // Lista exibida após organizar
   const [displayList, setDisplayList] = useState([]);
-
-  // Marca se jogador é levantador
   const [playerIsSetter, setPlayerIsSetter] = useState({});
-
-  // Modal para definir levantador
   const [showSetterModal, setShowSetterModal] = useState(false);
 
-  /* ===========================================================
-     1) Inicializa os jogadores a partir de "players"
-     =========================================================== */
+  // Se vier `playersPerTeam` da rota, já assumimos
+  useEffect(() => {
+    if (route.params?.playersPerTeam) {
+      setPlayersPerTeam(route.params.playersPerTeam);
+      setConfirmed(true);
+    }
+  }, [route.params?.playersPerTeam]);
+
+  // Carrega a lista de jogadores (e prepara seus IDs internos)
   useEffect(() => {
     const initialAssignments = {};
     const initialSetters = {};
-
-    // Monta array de jogadores com ID interno
     const processed = players.map((player, index) => {
       const realId = player.id_usuario ?? player.id ?? `temp-${index}`;
       return {
         ...player,
         _internalId: String(realId),
-        temporario: !!player.temporario, // garante a prop 'temporario'
+        temporario: !!player.temporario,
       };
     });
-
     processed.forEach((p) => {
       initialAssignments[p._internalId] = -1;
       initialSetters[p._internalId] = false;
     });
-
     setAllPlayers(processed);
     setPlayerAssignments(initialAssignments);
     setPlayerIsSetter(initialSetters);
   }, [players]);
 
-  /* ===========================================================
-     2) Confirmar quantos jogadores por time
-        -> Se leftover <=2, revezamento
-        -> Se leftover >=3, popup p/ criar temporários
-     =========================================================== */
-  const handleConfirmPlayersPerTeam = () => {
-    const totalPlayers = allPlayers.length;
-    const nFullTeams = Math.floor(totalPlayers / playersPerTeam);
-    const leftover = totalPlayers - nFullTeams * playersPerTeam;
+  // Quando "confirmed" for true, calcula quantos times e a possível sobra
+  useEffect(() => {
+    if (confirmed) {
+      const totalPlayers = allPlayers.length;
+      const nFullTeams = Math.floor(totalPlayers / playersPerTeam);
+      const leftover = totalPlayers - nFullTeams * playersPerTeam;
+      let nTeams = nFullTeams;
+      if (leftover > 0) nTeams += 1;
+      setNumTeams(nTeams);
+      if (leftover > 0 && leftover <= 2) {
+        // avisa revezamento
+        // (se quiser, basta exibir um Alert aqui; mas deixei silencioso)
+      } else if (leftover >= 3) {
+        // caso ainda houvesse
+        // mas neste fluxo, já resolvemos na tela anterior (DefineTeamSizeScreen)
+      }
+    }
+  }, [confirmed, allPlayers, playersPerTeam]);
 
-    let nTeams = nFullTeams;
-    if (leftover > 0) {
-      nTeams += 1;
-    }
-    setNumTeams(nTeams);
-
-    if (leftover === 0) {
-      // times exatos
-      setConfirmed(true);
-      return;
-    }
-    if (leftover <= 2 && leftover > 0) {
-      Alert.alert(
-        'Excedente/Revezar',
-        `Há ${leftover} jogador(es) sobrando. Poderá revezar com os times formados.`
-      );
-      setConfirmed(true);
-    } else {
-      // leftover >=3 => abre popup
-      const diff = playersPerTeam - leftover; // quantos faltam p/ completar
-      setNeedExtraPlayers(diff);
-      setShowPopUp(true);
-    }
+  // Contador de quantos em cada time
+  const countAssigned = (timeIndex, assignmentsObj) => {
+    return Object.values(assignmentsObj).filter((t) => t === timeIndex).length;
   };
 
-  /* ===========================================================
-     3) Criar jogador(es) temporário(s) => p/ completar times
-     =========================================================== */
-  const handleCreateTempPlayers = () => {
-    const newPlayers = [];
-    for (let i = 0; i < needExtraPlayers; i++) {
-      const rIndex = Math.floor(Math.random() * ANIMALS_LIST.length);
-      const animal = ANIMALS_LIST[rIndex] || 'Animal';
-
-      const tempId = -(Math.floor(Math.random() * 100000 + 1));
-      newPlayers.push({
-        _internalId: `temp-${Math.abs(tempId)}`,
-        nome: `Temp ${animal}`,
-        temporario: true,
-      });
+  // Capacidade do time (ver se houve "desfalcado")
+  const capacityOf = (timeIndex) => {
+    if (timeWithOneLess && timeIndex === numTeams - 1 && needExtraPlayers > 0) {
+      return playersPerTeam - needExtraPlayers;
     }
-
-    const updatedAll = [...allPlayers, ...newPlayers];
-    setAllPlayers(updatedAll);
-
-    const updatedAssignments = { ...playerAssignments };
-    const updatedSetters = { ...playerIsSetter };
-
-    newPlayers.forEach((p) => {
-      updatedAssignments[p._internalId] = -1;
-      updatedSetters[p._internalId] = false;
-    });
-
-    setPlayerAssignments(updatedAssignments);
-    setPlayerIsSetter(updatedSetters);
-
-    setShowPopUp(false);
-    setConfirmed(true);
+    return playersPerTeam;
   };
 
-  /* ===========================================================
-     4) Não criar temporário => time desfalcado
-     =========================================================== */
-  const handleTimeWithOneLess = () => {
-    setTimeWithOneLess(true);
-    setShowPopUp(false);
-    setConfirmed(true);
+  // Verifica se time está cheio
+  const isTeamFull = (timeIndex, assignmentsObj) => {
+    const assignedCount = countAssigned(timeIndex, assignmentsObj);
+    if (timeWithOneLess && timeIndex === numTeams - 1 && needExtraPlayers > 0) {
+      const realCap = playersPerTeam - needExtraPlayers;
+      return assignedCount >= realCap;
+    }
+    return assignedCount >= playersPerTeam;
   };
 
-  /* ===========================================================
-     5) Selecionar time
-     =========================================================== */
+  // Seleciona time no topo
   const handleSelectTime = (timeIndex) => {
     setSelectedTimeIndex(timeIndex);
   };
 
-  /* ===========================================================
-     6) Toggle do jogador => se time encher, auto-avança
-     =========================================================== */
+  // Ao clicar no switch de um jogador
   const handleTogglePlayer = (playerKey, newVal) => {
     setPlayerAssignments((prev) => {
       const currentTime = prev[playerKey];
       if (newVal) {
-        // Atribui ao time selecionado
-        if (currentTime === selectedTimeIndex) return prev; // já está no time
+        if (currentTime === selectedTimeIndex) return prev;
         if (isTeamFull(selectedTimeIndex, prev)) {
           Alert.alert('Time Cheio', `Time ${selectedTimeIndex + 1} já está completo!`);
           return prev;
         }
         const newObj = { ...prev, [playerKey]: selectedTimeIndex };
-        // Se encheu o time, auto-avança
+        // se encheu esse time, automaticamente seleciona o próximo
         if (countAssigned(selectedTimeIndex, newObj) >= capacityOf(selectedTimeIndex)) {
           if (selectedTimeIndex < numTeams - 1) {
             setTimeout(() => setSelectedTimeIndex((old) => old + 1), 300);
@@ -208,7 +149,7 @@ export default function ManualJogoScreen({ route, navigation }) {
         }
         return newObj;
       } else {
-        // Remove
+        // se tirou do time
         if (currentTime === selectedTimeIndex) {
           return { ...prev, [playerKey]: -1 };
         }
@@ -217,69 +158,14 @@ export default function ManualJogoScreen({ route, navigation }) {
     });
   };
 
-  const countAssigned = (timeIndex, assignmentsObj) => {
-    return Object.values(assignmentsObj).filter((t) => t === timeIndex).length;
-  };
-
-  const isTeamFull = (timeIndex, assignmentsObj) => {
-    const assignedCount = countAssigned(timeIndex, assignmentsObj);
-    if (timeWithOneLess && timeIndex === numTeams - 1 && needExtraPlayers > 0) {
-      // último time com -1
-      const realCap = playersPerTeam - needExtraPlayers;
-      return assignedCount >= realCap;
-    }
-    return assignedCount >= playersPerTeam;
-  };
-
-  /* ===========================================================
-     7) Copiar Lista
-     =========================================================== */
-  const handleCopyDistribution = async () => {
-    let text = '';
-    const teams = generateTeamsArray();
-    teams.forEach((team, idx) => {
-      text += `Time ${idx + 1} (${team.jogadores.length}/${capacityOf(idx)})\n`;
-      if (team.jogadores.length === 0) {
-        text += '  - (Nenhum jogador)\n';
-      } else {
-        team.jogadores.forEach((j) => {
-          const lev = playerIsSetter[j._internalId] ? ' [LEV]' : '';
-          const tempLabel = j.temporario ? ' (Jogador Temporário)' : '';
-          text += `  - ${j.nome}${lev}${tempLabel}\n`;
-        });
-      }
-      text += '\n';
-    });
-
-    // Sobras
-    const leftover = allPlayers.length % playersPerTeam;
-    if (leftover === 0) {
-      text += 'Observações:\n - Times completos.\n';
-    } else if (leftover <= 2) {
-      text += 'Observações:\n - 1 ou 2 jogadores em excesso => revezamento.\n';
-    } else {
-      text += `Observações:\n - Faltou ${playersPerTeam - leftover} para completar.\n`;
-    }
-
-    try {
-      await Clipboard.setStringAsync(text);
-      Alert.alert('Sucesso', 'Lista copiada para a área de transferência!');
-    } catch {
-      Alert.alert('Erro', 'Não foi possível copiar o texto.');
-    }
-  };
-
-  /* ===========================================================
-     8) Organizar Lista => gera displayList c/ headers
-     =========================================================== */
+  // Organizar lista (cria cabeçalhos "Time 1", "Time 2", etc.)
   const handleOrganizarLista = () => {
     const sorted = [...allPlayers];
-    // Ordena por time (quem está -1 fica no final)
     sorted.sort((a, b) => {
       const aTime = playerAssignments[a._internalId];
       const bTime = playerAssignments[b._internalId];
       if (aTime === bTime) return 0;
-      if (aTime === -1) return 1; // sem time vai para o final
+      if (aTime === -1) return 1;
       if (bTime === -1) return -1;
       return aTime - bTime;
     });
@@ -298,11 +184,57 @@ export default function ManualJogoScreen({ route, navigation }) {
     setDisplayList(newDisplay);
   };
 
-  /* ===========================================================
-     9) Selecionar Levantador => modal
-     =========================================================== */
+  // Gera array de times (para copiar)
+  const generateTeamsArray = () => {
+    const result = [];
+    for (let i = 0; i < numTeams; i++) {
+      const playersInTeam = allPlayers.filter(
+        (p) => playerAssignments[p._internalId] === i
+      );
+      result.push({ timeIndex: i, jogadores: playersInTeam });
+    }
+    return result;
+  };
+
+  // Copia a distribuição
+  const handleCopyDistribution = async () => {
+    let text = '';
+    const teams = generateTeamsArray();
+    teams.forEach((team, idx) => {
+      text += `Time ${idx + 1} (${team.jogadores.length}/${capacityOf(idx)})\n`;
+      if (team.jogadores.length === 0) {
+        text += '  - (Nenhum jogador)\n';
+      } else {
+        team.jogadores.forEach((j) => {
+          const lev = playerIsSetter[j._internalId] ? ' [LEV]' : '';
+          const tempLabel = j.temporario ? ' (Jogador Temporário)' : '';
+          text += `  - ${j.nome}${lev}${tempLabel}\n`;
+        });
+      }
+      text += '\n';
+    });
+
+    const leftover = allPlayers.length % playersPerTeam;
+    if (leftover === 0) {
+      text += 'Observações:\n - Times completos.\n';
+    } else if (leftover <= 2) {
+      text += 'Observações:\n - 1 ou 2 jogadores em excesso => revezamento.\n';
+    } else {
+      text += `Observações:\n - Faltou ${playersPerTeam - leftover} para completar.\n`;
+    }
+
+    try {
+      await Clipboard.setStringAsync(text);
+      Alert.alert('Sucesso', 'Lista copiada para a área de transferência!');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível copiar o texto.');
+    }
+  };
+
+  // Verifica se time atual está cheio
   const currentTeamFull = isTeamFull(selectedTimeIndex, playerAssignments);
 
+  // Modal para selecionar levantadores
   const handleOpenSetterModal = () => {
     if (!currentTeamFull) {
       Alert.alert('Atenção', 'O time atual ainda não está completo!');
@@ -322,29 +254,7 @@ export default function ManualJogoScreen({ route, navigation }) {
     }));
   };
 
-  // Gera times final
-  const generateTeamsArray = () => {
-    const result = [];
-    for (let i = 0; i < numTeams; i++) {
-      const playersInTeam = allPlayers.filter(
-        (p) => playerAssignments[p._internalId] === i
-      );
-      result.push({ timeIndex: i, jogadores: playersInTeam });
-    }
-    return result;
-  };
-
-  // Capacidade real => se timeWithOneLess e é o ultimo time
-  const capacityOf = (timeIndex) => {
-    if (timeWithOneLess && timeIndex === numTeams - 1 && needExtraPlayers > 0) {
-      return playersPerTeam - needExtraPlayers;
-    }
-    return playersPerTeam;
-  };
-
-  // Se displayList tá vazio => render normal; senão => "header/player"
-  const dataToRender = displayList.length > 0 ? displayList : allPlayers;
-
+  // Render item para lista ORGANIZADA
   const renderItemOrganized = ({ item }) => {
     if (!item.type) return renderPlayerRaw(item);
     if (item.type === 'header') {
@@ -372,6 +282,7 @@ export default function ManualJogoScreen({ route, navigation }) {
     return null;
   };
 
+  // Render item para jogador "raw"
   const renderPlayerRaw = (playerObj) => {
     const assignedTime = playerAssignments[playerObj._internalId];
     const isInSelected = assignedTime === selectedTimeIndex;
@@ -386,12 +297,14 @@ export default function ManualJogoScreen({ route, navigation }) {
               {playerObj.nome}
               {isLev && <Text style={[styles.levText, { color: '#F44336' }]}> [LEV]</Text>}
             </Text>
-            <View style={[
-              styles.genderBadge,
-              { backgroundColor: playerObj.genero === 'M' ? '#4A90E2' : '#E91E63' }
-            ]}>
-              <Text style={styles.genderText}>{playerObj.genero}</Text>
-            </View>
+            {playerObj.genero && (
+              <View style={[
+                styles.genderBadge,
+                { backgroundColor: playerObj.genero === 'M' ? '#4A90E2' : '#E91E63' }
+              ]}>
+                <Text style={styles.genderText}>{playerObj.genero}</Text>
+              </View>
+            )}
           </View>
           {playerObj.temporario && (
             <Text style={styles.tempLabel}>Jogador Temporário</Text>
@@ -420,8 +333,9 @@ export default function ManualJogoScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Passo 1 => escolher quantos por time */}
       {!confirmed && (
+        // Caso queira exibir algo antes de definir, mas no nosso fluxo
+        // definimos playersPerTeam na tela anterior, então "confirmed" já vem true.
         <View style={styles.step1Container}>
           <Text style={styles.title}>Quantos jogadores por time?</Text>
           <View style={styles.optionsRow}>
@@ -448,13 +362,12 @@ export default function ManualJogoScreen({ route, navigation }) {
           <Text style={styles.infoText}>
             Jogadores confirmados: {allPlayers.length}
           </Text>
-          <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmPlayersPerTeam}>
+          <TouchableOpacity style={styles.confirmButton} onPress={() => setConfirmed(true)}>
             <Text style={styles.confirmButtonText}>Confirmar</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Se já confirmou => exibe times */}
       {confirmed && (
         <>
           <Text style={styles.selectedTimeText}>
@@ -502,12 +415,10 @@ export default function ManualJogoScreen({ route, navigation }) {
             })}
           </ScrollView>
 
-          {/* Lista principal */}
           <View style={styles.playersListContainer}>
             <Text style={styles.playersListTitle}>Jogadores</Text>
-
             <FlatList
-              data={dataToRender}
+              data={displayList.length > 0 ? displayList : allPlayers}
               keyExtractor={(item, index) => {
                 if (item.type === 'header') {
                   return `header-${item.timeIndex}-${index}`;
@@ -526,7 +437,6 @@ export default function ManualJogoScreen({ route, navigation }) {
             />
           </View>
 
-          {/* Botões rodapé */}
           <View style={styles.footerButtonsContainer}>
             <TouchableOpacity
               style={[styles.footerButton, { marginRight: 6 }]}
@@ -544,7 +454,6 @@ export default function ManualJogoScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Botão de Selecionar Levantador (se time cheio) */}
           {currentTeamFull && (
             <View style={styles.setterContainer}>
               <TouchableOpacity style={styles.setterButton} onPress={handleOpenSetterModal}>
@@ -556,7 +465,7 @@ export default function ManualJogoScreen({ route, navigation }) {
         </>
       )}
 
-      {/* Modal p/ levantador */}
+      {/* Modal para levantar a galera */}
       <Modal visible={showSetterModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -597,7 +506,7 @@ export default function ManualJogoScreen({ route, navigation }) {
         </View>
       </Modal>
 
-      {/* Modal se sobrar 3+ => criar temporários */}
+      {/* Caso ainda tivesse popUp de times desfalcados neste fluxo (normalmente já tratado antes) */}
       <Modal visible={showPopUp} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -605,19 +514,19 @@ export default function ManualJogoScreen({ route, navigation }) {
               {allPlayers.length} jogadores confirmados.
             </Text>
             <Text style={styles.modalText}>
-              Faltam {needExtraPlayers} para formar todos os times completos. 
+              Faltam {needExtraPlayers} para formar todos os times completos.
               Deseja criar jogadores temporários?
             </Text>
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: '#4CAF50' }]}
-                onPress={handleCreateTempPlayers}
+                onPress={() => {}}
               >
                 <Text style={styles.modalButtonText}>Sim</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: '#F44336' }]}
-                onPress={handleTimeWithOneLess}
+                onPress={() => {}}
               >
                 <Text style={styles.modalButtonText}>Não, deixar desfalcado</Text>
               </TouchableOpacity>
@@ -629,9 +538,6 @@ export default function ManualJogoScreen({ route, navigation }) {
   );
 }
 
-/* ===========================================================
-   ESTILOS
-   =========================================================== */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -764,7 +670,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     fontStyle: 'italic',
-    color: '#FFC107', // amarelo
+    color: '#FFC107',
   },
   toggleRow: {
     flexDirection: 'row',

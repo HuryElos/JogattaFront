@@ -85,4 +85,74 @@ export default StyleSheet.create({
   removeButton: {
     padding: 8,
   },
+
+  // Estilos do botão de levantadores
+  setterButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FF9800',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+  },
+  setterButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    marginLeft: 6,
+    fontSize: 14,
+  },
+
+  // Estilos do modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    width: '90%',
+    maxHeight: '60%',
+    alignSelf: 'center',
+    marginTop: 'auto',
+    marginBottom: 'auto',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  levRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+  },
+  modalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  modalButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });

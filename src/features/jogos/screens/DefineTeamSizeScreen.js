@@ -1,3 +1,5 @@
+// src/features/jogos/screens/DefineTeamSizeScreen.js
+
 import React, { useState } from 'react';
 import {
   View,
@@ -147,7 +149,7 @@ export default function DefineTeamSizeScreen({ route, navigation }) {
               {players.length} jogadores confirmados.
             </Text>
             <Text style={styles.modalText}>
-              Faltam {needExtraPlayers} para formar todos os times completos. 
+              Faltam {needExtraPlayers} para formar todos os times completos.
               Deseja criar jogadores temporários?
             </Text>
             <View style={styles.modalButtonsRow}>
@@ -183,9 +185,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    marginBottom: 15, 
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
     color: '#333',
   },
   optionsRow: {

@@ -1,3 +1,5 @@
+// src/screens/HomeScreen.js
+
 import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -60,6 +62,20 @@ export default function HomeScreen({ navigation }) {
       { masculino: 0, feminino: 0 }
     );
   }, [tempPlayersData]);
+
+  // Limpa os estados dos modais quando a tela perde o foco
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Limpa todos os estados quando a tela perde o foco
+        setShowPasteModal(false);
+        setShowFlowModal(false);
+        setShowProcessedModal(false);
+        setPastedText('');
+        setTempPlayersData([]);
+      };
+    }, [])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -171,22 +187,32 @@ export default function HomeScreen({ navigation }) {
     setShowFlowModal(true);
   };
 
+  /**
+   * Se clicar em "Manual" ou "Automático" dentro do modal:
+   *   - Manual => queremos primeiro a tela de 'DefineTeamSizeScreen'
+   *   - Automático => segue direto pra 'JogoScreen'
+   */
   const handleSelectFlow = (flowType) => {
+    // Limpa os estados antes de navegar
+    setShowPasteModal(false);
+    setShowFlowModal(false);
+    setShowProcessedModal(false);
+    setPastedText('');
+    // Aqui está o *pequeno ajuste* para mandar p/ a tela de definir tamanho, antes de ir para ManualJogoScreen
     if (flowType === 'manual') {
-      navigation.navigate('Equilibrar Times', {
+      navigation.navigate('JogosFlow', {
         screen: 'DefineTeamSizeScreen',
         params: { players: tempPlayersData },
       });
     } else {
-      navigation.navigate('Equilibrar Times', {
+      navigation.navigate('JogosFlow', {
         screen: 'JogoScreen',
         params: { tempPlayers: tempPlayersData, fluxo: 'automatico' },
       });
     }
-    setPastedText('');
-    setTempPlayersData([]);
   };
 
+  // Renderização de um Card de Partida
   const renderPartidaCard = (partida) => {
     const dataJogo = moment(`${partida.data_jogo}T${partida.horario_inicio}`);
     const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
@@ -290,9 +316,12 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.actionText}>Importar{'\n'}lista</Text>
           </TouchableOpacity>
 
+          {/* BOTÃO "EQUILIBRAR TIMES" */}
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('Equilibrar Times')}
+            onPress={() => navigation.navigate('JogosFlow', {
+              screen: 'EquilibrarTimesScreen'
+            })}
           >
             <Image
               source={require('../../assets/icons/groups_3.png')}
@@ -357,6 +386,9 @@ export default function HomeScreen({ navigation }) {
         onRequestClose={() => {
           setPastedText('');
           setShowPasteModal(false);
+          setShowFlowModal(false);
+          setShowProcessedModal(false);
+          setTempPlayersData([]);
         }}
       >
         <View style={styles.modalContainer}>
@@ -367,6 +399,9 @@ export default function HomeScreen({ navigation }) {
                 onPress={() => {
                   setPastedText('');
                   setShowPasteModal(false);
+                  setShowFlowModal(false);
+                  setShowProcessedModal(false);
+                  setTempPlayersData([]);
                 }}
               >
                 <MaterialCommunityIcons name="close" size={24} color="#64748B" />
@@ -394,13 +429,27 @@ export default function HomeScreen({ navigation }) {
         visible={showProcessedModal}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowProcessedModal(false)}
+        onRequestClose={() => {
+          setShowProcessedModal(false);
+          setShowPasteModal(false);
+          setShowFlowModal(false);
+          setPastedText('');
+          setTempPlayersData([]);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Confirmar Jogadores</Text>
-              <TouchableOpacity onPress={() => setShowProcessedModal(false)}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowProcessedModal(false);
+                  setShowPasteModal(false);
+                  setShowFlowModal(false);
+                  setPastedText('');
+                  setTempPlayersData([]);
+                }}
+              >
                 <MaterialCommunityIcons name="close" size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
@@ -493,7 +542,13 @@ export default function HomeScreen({ navigation }) {
         visible={showFlowModal}
         animationType="fade"
         transparent
-        onRequestClose={() => setShowFlowModal(false)}
+        onRequestClose={() => {
+          setShowFlowModal(false);
+          setShowPasteModal(false);
+          setShowProcessedModal(false);
+          setPastedText('');
+          setTempPlayersData([]);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.flowModalContent}>
@@ -523,6 +578,9 @@ export default function HomeScreen({ navigation }) {
               style={styles.cancelButton}
               onPress={() => {
                 setShowFlowModal(false);
+                setShowPasteModal(false);
+                setShowProcessedModal(false);
+                setPastedText('');
                 setTempPlayersData([]);
               }}
             >
@@ -639,22 +697,18 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     backgroundColor: '#FFF',
-    // altura para ficar próximo ao design
     height: 160,
     overflow: 'hidden',
-    // sombra leve
-    elevation: 3, // Android
-    shadowColor: '#000', // iOS
+    elevation: 3,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  // Topo cinza
   mapTop: {
     flex: 2,
     backgroundColor: '#D8D8D8',
   },
-  // Faixa laranja
   mapBottom: {
     flex: 1,
     backgroundColor: brandColor,
@@ -691,7 +745,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-
     padding: 12,
     justifyContent: 'center',
     alignItems: 'center',

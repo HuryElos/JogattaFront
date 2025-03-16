@@ -1,3 +1,5 @@
+// src/features/jogos/screens/EquilibrarTimesScreen.js
+
 import React, { useState } from 'react';
 import {
   View,
@@ -25,12 +27,15 @@ const EquilibrarTimesScreen = ({ navigation }) => {
 
     switch (selectedMode) {
       case 'manual':
-        navigation.navigate('ConvidarAmigos', { fluxo: 'manual' });
+        // Pode ir direto para "DefineTeamSizeScreen"
+        navigation.navigate('DefineTeamSizeScreen', { fluxo: 'manual' });
         break;
       case 'habilidades':
+        // Fluxo automático baseado em habilidades
         navigation.navigate('ConvidarAmigos', { fluxo: 'habilidades' });
         break;
       case 'galera':
+        // Fluxo atual
         navigation.navigate('CriarJogo', { fluxo: 'dinamico' });
         break;
       default:
@@ -78,7 +83,6 @@ const EquilibrarTimesScreen = ({ navigation }) => {
 
       {/* Linha 1: Botão Manual e Botão Gerar Habilidades */}
       <View style={styles.buttonRow}>
-        {/* Botão Manual */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             onPress={() => handleOptionPress('manual')}
@@ -92,7 +96,6 @@ const EquilibrarTimesScreen = ({ navigation }) => {
           <Text style={styles.buttonTitle}>Manual</Text>
         </View>
 
-        {/* Botão Gerar times com Habilidades */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             onPress={() => handleOptionPress('habilidades')}
@@ -156,11 +159,6 @@ const EquilibrarTimesScreen = ({ navigation }) => {
 
 export default EquilibrarTimesScreen;
 
-/**
- * Estilos mínimos, seguindo a ideia de wireframe:
- * sem sombras fortes ou cores chamativas, apenas
- * layout básico e espaçamentos.
- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -204,7 +202,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  /* Modal */
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',

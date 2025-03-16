@@ -11,9 +11,7 @@ import JogoScreen from '../features/jogos/screens/JogoScreen';
 import TimesBalanceados from '../features/jogos/screens/TimesBalanceados';
 import LiveRoomScreen from '../features/jogos/screens/LiveRoomScreen';
 import ManualJogoScreen from '../features/jogos/screens/ManualJogoScreen';
-import ManualDistributionScreen from '../features/jogos/screens/ManualDistributionScreen';
-
-// IMPORTE A NOVA TELA:
+import ManualDistributionScreen from '../features/jogos/screens/ManualDistributionScreen'; // se ainda quiser manter
 import DefineTeamSizeScreen from '../features/jogos/screens/DefineTeamSizeScreen';
 
 const Stack = createStackNavigator();
@@ -25,7 +23,35 @@ export default function JogosStackNavigator() {
       <Stack.Screen
         name="EquilibrarTimesScreen"
         component={EquilibrarTimesScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Equilibrar Times' }}
+      />
+
+      {/* Tela de Jogo (fluxo automático) */}
+      <Stack.Screen
+        name="JogoScreen"
+        component={JogoScreen}
+        options={{ title: 'Jogo' }}
+      />
+
+      {/* Tela de Distribuição Manual (se quiser usar ou não) */}
+      <Stack.Screen
+        name="ManualDistributionScreen"
+        component={ManualDistributionScreen}
+        options={{ title: 'Organizar Times Manualmente' }}
+      />
+
+      {/* Tela de times balanceados */}
+      <Stack.Screen
+        name="TimesBalanceados"
+        component={TimesBalanceados}
+        options={{ title: 'Times Balanceados' }}
+      />
+
+      {/* Sala ao vivo */}
+      <Stack.Screen
+        name="LiveRoom"
+        component={LiveRoomScreen}
+        options={{ title: 'Sala ao Vivo' }}
       />
 
       {/* Criação de jogo */}
@@ -42,44 +68,18 @@ export default function JogosStackNavigator() {
         options={{ title: 'Convidar Amigos' }}
       />
 
-      {/* Tela de exibição do jogo */}
-      <Stack.Screen
-        name="JogoScreen"
-        component={JogoScreen}
-        options={{ title: 'Jogo' }}
-      />
-
-      {/* Tela de times balanceados automaticamente */}
-      <Stack.Screen
-        name="TimesBalanceados"
-        component={TimesBalanceados}
-        options={{ title: 'Times Balanceados' }}
-      />
-
-      {/* Sala ao vivo */}
-      <Stack.Screen
-        name="LiveRoom"
-        component={LiveRoomScreen}
-        options={{ title: 'Live Room' }}
-      />
-
-      {/* NOVA TELA PARA DEFINIR TAMANHO DO TIME */}
+      {/* Tela para definir tamanho do time */}
       <Stack.Screen
         name="DefineTeamSizeScreen"
         component={DefineTeamSizeScreen}
         options={{ title: 'Definir Tamanho' }}
       />
 
-      {/* Telas para fluxo manual */}
+      {/* Telas para fluxo manual -> agora vai para ManualJogoScreen */}
       <Stack.Screen
         name="ManualJogoScreen"
         component={ManualJogoScreen}
         options={{ title: 'Distribuir Manualmente' }}
-      />
-      <Stack.Screen
-        name="ManualDistributionScreen"
-        component={ManualDistributionScreen}
-        options={{ title: 'Organizar Times Manualmente' }}
       />
     </Stack.Navigator>
   );

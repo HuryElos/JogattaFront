@@ -1,4 +1,5 @@
 // src/navigation/AppNavigator.js
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Dimensions, 
@@ -14,46 +15,64 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 
-// Telas principais (Home, Amigos, etc.)
+// Telas principais
 import HomeScreen from '../screens/HomeScreen';
 import AdicionarAmigos from '../features/amigos/screens/AdicionarAmigos';
 import EditProfileScreen from '../features/perfil/screens/EditProfileScreen';
-import JogosStackNavigator from './JogosStackNavigator';
+import JogosStackNavigator from './JogosStackNavigator'; // fluxo de jogos
 import PlacarScreen from '../features/jogos/screens/PlacarScreen';
 import LiveRoomScreen from '../features/jogos/screens/LiveRoomScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CompanyDetailsScreen from '../features/user/screens/CompanyDetailsScreen';
 
-// Telas de Admin (opcional no fluxo do user)
+// Telas de Admin
 import CriarQuadraScreen from '../features/admin/screens/CriarQuadraScreen';
 import GerenciarQuadraScreen from '../features/quadras/screens/GerenciarQuadraScreen';
 
 // Tela de explorar quadras (usuário comum)
 import ExploreQuadrasScreen from '../features/user/screens/ExploreQuadras';
 
+// Tela temporária para Partidas (exemplo)
+function PartidasTemporaryScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+      <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 12 }}>
+        Em breve!
+      </Text>
+      <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
+        A tela de Partidas está em desenvolvimento e estará disponível em breve.
+      </Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Stacks
+// ---------------------------------------------------------------------
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-/**
- * Função que retorna o ícone local de cada rota.
- * Ajuste os nomes dos arquivos caso sejam diferentes.
- */
+/** Ícone local para cada rota **/
 function getLocalIcon(routeName) {
   switch (routeName) {
     case 'HomeTab':
       return require('../../assets/icons/home.png');
     case 'Partidas':
       return require('../../assets/icons/sports_volleyball.png');
-    case 'Equilibrar Times':
+    case 'Placar':
       return require('../../assets/icons/scoreboard.png');
     case 'Perfil':
       return require('../../assets/icons/person.png');
     default:
-      // Ícone genérico (fallback)
       return require('../../assets/icons/home.png');
   }
 }
 
+/** 
+ * Stack principal da Home (GeneralStackNavigator).
+ * Importante: aqui adicionamos a rota "JogosFlow" -> JogosStackNavigator
+ * para que o HomeScreen possa acessar usando `navigation.navigate('JogosFlow')`.
+ */
 function GeneralStackNavigator() {
   return (
     <Stack.Navigator>
@@ -61,6 +80,13 @@ function GeneralStackNavigator() {
       <Stack.Screen
         name="Home"
         component={HomeScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Fluxo de Jogos */}
+      <Stack.Screen
+        name="JogosFlow"
+        component={JogosStackNavigator}
         options={{ headerShown: false }}
       />
 
@@ -116,32 +142,11 @@ function PerfilStackNavigator() {
   );
 }
 
-/** 
- * Tela temporária para "Partidas"
- * (caso não esteja implementada ainda)
- */
-function PartidasTemporaryScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-      <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 12 }}>
-        Em breve!
-      </Text>
-      <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
-        A tela de Partidas está em desenvolvimento e estará disponível em breve.
-      </Text>
-    </View>
-  );
-}
-
 /**
- * Componente personalizado para o Tab Bar
- * com animação de bolinha que segue a aba selecionada
- * e usando imagens locais em vez de Ionicons.
+ * Custom TabBar com animação da "bolinha" (bubble).
  */
 function CustomTabBar({ state, descriptors, navigation }) {
-  // Posição de cada aba (para animar a bolinha)
   const tabPositions = useRef(new Array(state.routes.length).fill(0)).current;
-  // Largura total aproximada da tab bar
   const tabBarWidth = Dimensions.get('window').width;
   const tabWidth = tabBarWidth / state.routes.length;
 
@@ -149,7 +154,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
   const bubblePosition = useRef(new Animated.Value(tabWidth * 2)).current;
   const bubbleScale = useRef(new Animated.Value(1)).current;
 
-  // Efeito para mover a bolinha quando o tab muda
   useEffect(() => {
     const offsetRight = 20;
     const currentTabPosition = tabPositions[state.index] || tabWidth * state.index;
@@ -194,7 +198,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
           colors={['#FF7014', '#FF8A3D']}
           style={styles.specialTabButton}
         >
-          {/* Ícone que aparece dentro da bolinha (aba selecionada) */}
           {state.routes[state.index] && (
             <Image
               source={getLocalIcon(state.routes[state.index].name)}
@@ -205,14 +208,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
         </LinearGradient>
       </Animated.View>
 
-      {/* Itens da tab */}
+      {/* Ícones das abas */}
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label = options.tabBarLabel || options.title || route.name;
         const isFocused = state.index === index;
 
         const onPress = () => {
-          // Guarda a posição deste item para mover a bolinha
+          // Salva a posição deste item p/ mover a bolinha
           tabPositions[index] = tabWidth * index;
           const event = navigation.emit({
             type: 'tabPress',
@@ -231,25 +234,20 @@ function CustomTabBar({ state, descriptors, navigation }) {
             onPress={onPress}
             onLayout={(event) => {
               const { x, width } = event.nativeEvent.layout;
-              // Ajuste para posicionar a bolinha centralizada sobre o botão
+              // centraliza a bolinha no ícone
               tabPositions[index] = x + (width / 2) - (styles.specialTabButtonContainer.width / 2);
             }}
           >
-            {/* Ícone quando não está selecionado */}
             <View style={[styles.iconContainer, isFocused && styles.iconHidden]}>
               <Image
                 source={getLocalIcon(route.name)}
                 style={[
                   { width: 24, height: 24 },
-                  // Se a imagem for neutra (branca/transparente),
-                  // você pode aplicar tintColor para mudar cor de foco
                   { tintColor: isFocused ? '#37A0EC' : '#999' }
                 ]}
                 resizeMode="contain"
               />
             </View>
-
-            {/* Label do tab */}
             <Text style={[styles.tabLabel, isFocused ? styles.tabLabelActive : styles.tabLabelInactive]}>
               {label}
             </Text>
@@ -260,6 +258,9 @@ function CustomTabBar({ state, descriptors, navigation }) {
   );
 }
 
+// ---------------------------------------------------------------------
+// Export principal: TAB NAVIGATOR
+// ---------------------------------------------------------------------
 export default function AppNavigator() {
   const [isLandscape, setIsLandscape] = useState(
     Dimensions.get('window').width > Dimensions.get('window').height
@@ -275,33 +276,33 @@ export default function AppNavigator() {
   return (
     <Tab.Navigator
       initialRouteName="HomeTab"
-      tabBar={props => <CustomTabBar {...props} />}
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
       }}
     >
-      {/* Aba da Home */}
+      {/* ABA DA HOME */}
       <Tab.Screen
         name="HomeTab"
         component={GeneralStackNavigator}
         options={{ title: 'Início' }}
       />
 
-      {/* Aba de Partidas (temporária ou definitiva) */}
+      {/* ABA DE PARTIDAS (exemplo temporário) */}
       <Tab.Screen
         name="Partidas"
         component={PartidasTemporaryScreen}
         options={{ title: 'Partidas' }}
       />
 
-      {/* Aba de Placar (Equilibrar Times) */}
+      {/* ABA DE PLACAR (ou "Equilibrar Times") */}
       <Tab.Screen
-        name="Equilibrar Times"
+        name="Placar"
         component={PlacarScreen}
         options={{ title: 'Placar' }}
       />
 
-      {/* Aba de Perfil */}
+      {/* ABA DE PERFIL */}
       <Tab.Screen
         name="Perfil"
         component={PerfilStackNavigator}
@@ -311,6 +312,9 @@ export default function AppNavigator() {
   );
 }
 
+// ---------------------------------------------------------------------
+// Estilos
+// ---------------------------------------------------------------------
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
@@ -342,7 +346,6 @@ const styles = StyleSheet.create({
   },
   animatedBubbleContainer: {
     position: 'absolute',
-    // Ajuste vertical se quiser centralizar a bolinha (por ex. no meio da barra)
     top: 0,
     width: 42,
     height: 42,
