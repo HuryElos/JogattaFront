@@ -15,19 +15,18 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
-  ScrollView
+  ScrollView,
+  Animated
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
-
 import AuthContext from '../contexts/AuthContext';
 import api from '../services/api';
 
 const { width } = Dimensions.get('window');
 const brandColor = '#E0E0E0'; // cor principal
-
 const STATUS_COLORS = {
   ativa: '#34D399',
   fechada: '#EF4444',
@@ -43,6 +42,9 @@ export default function HomeScreen({ navigation }) {
   const [salasAtivas, setSalasAtivas] = useState([]);
   const [loadingSalas, setLoadingSalas] = useState(false);
   const [salaId, setSalaId] = useState('');
+  
+  // Adicionando estado para o modal de código
+  const [showEnterCodeModal, setShowEnterCodeModal] = useState(false);
 
   // Estados para modais
   const [showPasteModal, setShowPasteModal] = useState(false);
@@ -71,8 +73,10 @@ export default function HomeScreen({ navigation }) {
         setShowPasteModal(false);
         setShowFlowModal(false);
         setShowProcessedModal(false);
+        setShowEnterCodeModal(false);
         setPastedText('');
         setTempPlayersData([]);
+        setSalaId('');
       };
     }, [])
   );
@@ -135,6 +139,9 @@ export default function HomeScreen({ navigation }) {
       Alert.alert('Erro', 'Não foi possível entrar na sala.');
       console.error('handleEnterSala:', error);
     }
+    // Limpar código e fechar modal após a tentativa
+    setSalaId('');
+    setShowEnterCodeModal(false);
   };
 
   // Extração de nomes da lista com "✅"
@@ -211,12 +218,12 @@ export default function HomeScreen({ navigation }) {
       });
     }
   };
-
+  // Criação do carrossel 
   // Renderização de um Card de Partida
   const renderPartidaCard = (partida) => {
     const dataJogo = moment(`${partida.data_jogo}T${partida.horario_inicio}`);
     const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
-
+   
     return (
       <TouchableOpacity
         key={partida.id_jogo}
@@ -226,7 +233,9 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.partidaIconContainer}>
           <MaterialCommunityIcons name="volleyball" size={24} color="#FF6B00" />
         </View>
+
         <Text style={styles.partidaTitle}>Partida {partida.id_jogo}</Text>
+
         <View style={styles.partidaInfo}>
           <MaterialCommunityIcons name="calendar" size={16} color="#666" />
           <Text style={styles.partidaText}>
@@ -250,6 +259,7 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
       <ScrollView style={styles.container}>
+       
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -280,23 +290,20 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() =>
-              navigation.navigate('MainApp', {
-                screen: 'Equilibrar Times',
-                params: { screen: 'CriarJogo' },
-              })
-            }
+            onPress={() => navigation.navigate('CriarJogo')}
           >
+            
             <Image
               source={require('../../assets/icons/add_circle.png')}
               style={{ width: 24, height: 24 }}
             />
             <Text style={styles.actionText}>Criar{'\n'}partida</Text>
+            
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('LiveRoom')}
+            onPress={() => setShowEnterCodeModal(true)}
           >
             <Image
               source={require('../../assets/icons/input_circle.png')}
@@ -373,9 +380,17 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.seeAllText}>Ver todas</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.partidasContainer}>
+        
+        <ScrollView  
+        horizontal={true}  
+        showsHorizontalScrollIndicator={false}
+        style={styles.partidasContainer}>
+       
+      
           {salasAtivas.slice(0, 2).map(renderPartidaCard)}
-        </View>
+ 
+
+        </ScrollView>
       </ScrollView>
 
       {/* MODAL: COLAR LISTA */}
@@ -497,7 +512,7 @@ export default function HomeScreen({ navigation }) {
                           item.genero === 'M' && styles.genderButtonTextSelected,
                         ]}
                       >
-                        M
+                        
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -514,7 +529,7 @@ export default function HomeScreen({ navigation }) {
                           item.genero === 'F' && styles.genderButtonTextSelected,
                         ]}
                       >
-                        F
+                        
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -589,6 +604,54 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* MODAL: INSERIR CÓDIGO DA SALA */}
+      <Modal
+        visible={showEnterCodeModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          setShowEnterCodeModal(false);
+          setSalaId('');
+        }}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.codeModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Entrar na Partida</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowEnterCodeModal(false);
+                  setSalaId('');
+                }}
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalSubtitle}>
+              Insira o código da partida para entrar
+            </Text>
+            <TextInput
+              style={styles.codeInput}
+              placeholder="Digite o código aqui..."
+              value={salaId}
+              onChangeText={setSalaId}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity 
+              style={[
+                styles.primaryButton, 
+                !salaId.trim() && styles.primaryButtonDisabled
+              ]}
+              onPress={handleEnterSala}
+              disabled={!salaId.trim()}
+            >
+              <Text style={styles.buttonText}>Entrar na Partida</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -598,6 +661,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFF',
+    paddingTop: 25,
   },
   container: {
     flex: 1,
@@ -628,7 +692,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
     marginHorizontal: 16,
     marginBottom: 16,
-    padding: 12,
+    padding: 5,
     borderRadius: 8,
     alignItems: 'center',
     gap: 8,
@@ -672,6 +736,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 4,
+    color: '#333',
+  },
+
+  /* Modal Entrar na partida*/
+  codeModalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+  },
+  codeInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    backgroundColor: '#F8FAFC',
+    fontSize: 16,
     color: '#333',
   },
 
@@ -770,17 +852,38 @@ const styles = StyleSheet.create({
     color: 'black',
   },
   partidasContainer: {
+  
+    flexDirection: 'row',  
+    gap: 20,  
+    padding: 16, 
+    gap: 10,
     marginHorizontal: 16,
-    marginBottom: 60,
+  },
+  
+  partidasContainer: {
+  
+    flexDirection: 'row',  
+    gap: 20,  
+    padding: 16, 
+    gap: 10,
+    marginHorizontal: 16,
   },
   partidaCard: {
-    backgroundColor: '#F8F8F8',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    gap: 8,
+      backgroundColor: '#F8F8F8',
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      marginRight: 20,
+      gap: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 4, 
   },
+  
   partidaIconContainer: {
+   
     backgroundColor: '#FFF',
     width: 40,
     height: 40,
@@ -810,11 +913,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   acessarButtonText: {
+    
     color: '#FFF',
     fontSize: 14,
     fontWeight: '500',
   },
 
+
+
+  
   /* MODAIS GERAIS */
   modalContainer: {
     flex: 1,
@@ -856,7 +963,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   primaryButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B00',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
