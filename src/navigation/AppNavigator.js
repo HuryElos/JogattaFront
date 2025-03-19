@@ -52,7 +52,7 @@ function PartidasTemporaryScreen() {
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-/** Ícone local para cada rota **/
+/* Ícone local para cada rota */
 function getLocalIcon(routeName) {
   switch (routeName) {
     case 'HomeTab':
@@ -71,7 +71,7 @@ function getLocalIcon(routeName) {
 /** 
  * Stack principal da Home (GeneralStackNavigator).
  * Importante: aqui adicionamos a rota "JogosFlow" -> JogosStackNavigator
- * para que o HomeScreen possa acessar usando `navigation.navigate('JogosFlow')`.
+ * para que o HomeScreen possa acessar usando navigation.navigate('JogosFlow').
  */
 function GeneralStackNavigator() {
   return (
@@ -181,6 +181,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
   }, [state.index]);
 
   return (
+
+
     <View style={styles.tabBarContainer}>
       {/* Bolinha animada */}
       <Animated.View 
@@ -195,7 +197,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
         ]}
       >
         <LinearGradient
-          colors={['#FF7014', '#FF8A3D']}
+          colors={['#fffff1', '#ffffff']}
           style={styles.specialTabButton}
         >
           {state.routes[state.index] && (
@@ -243,7 +245,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 source={getLocalIcon(route.name)}
                 style={[
                   { width: 24, height: 24 },
-                  { tintColor: isFocused ? '#37A0EC' : '#999' }
+                  { tintColor: isFocused ? '#37A0EC' : '#49454F' }
                 ]}
                 resizeMode="contain"
               />
@@ -318,14 +320,18 @@ export default function AppNavigator() {
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FF8A3D',
     borderTopWidth: 1,
     borderTopColor: '#EEEEEE',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
     paddingTop: 10,
     paddingBottom: Platform.OS === 'ios' ? 25 : 10,
     justifyContent: 'space-around',
     alignItems: 'center',
     height: Platform.OS === 'ios' ? 80 : 65,
+    height: 75,
+    
   },
   tabItem: {
     flex: 1,
@@ -338,26 +344,30 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabLabelActive: {
-    color: '#37A0EC',
+    color: '#000000',
     fontWeight: '500',
   },
   tabLabelInactive: {
-    color: '#999',
+    color: '#49454F',
   },
   animatedBubbleContainer: {
     position: 'absolute',
     top: 0,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 55,
+    height: 35,
+    borderRadius: 50,
     overflow: 'hidden',
     zIndex: 1,
+    marginTop: 5,
+  
   },
   specialTabButtonContainer: {
     width: 42,
     height: 42,
     borderRadius: 21,
     overflow: 'hidden',
+    backgroundColor: '#ffffff',
+
   },
   specialTabButton: {
     width: '100%',

@@ -290,7 +290,7 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('CriarJogo')}
+            onPress={() => navigation.navigate('JogosFlow', { screen: 'CriarJogo' })}
           >
             
             <Image
