@@ -1,5 +1,3 @@
-// jogos/hooks/useDateTime.js
-
 import { useState } from 'react';
 
 /**

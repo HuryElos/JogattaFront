@@ -376,9 +376,9 @@ export default function HomeScreen({ navigation }) {
         {/* PRÓXIMAS PARTIDAS */}
         <View style={styles.nextMatchesHeader}>
           <Text style={styles.sectionTitle}>Próximas partidas</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>Ver todas</Text>
-          </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Partidas')}>
+                <Text style={styles.seeAllText}>Ver todas</Text>
+              </TouchableOpacity>
         </View>
         
         <ScrollView  

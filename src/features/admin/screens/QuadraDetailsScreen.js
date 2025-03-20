@@ -1,6 +1,3 @@
-// src/features/admin/screens/QuadraDetailsScreen.js
-// (Ou o caminho correspondente onde você exibe detalhes da quadra)
-
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
 import api from '../../../services/api';
@@ -35,14 +32,16 @@ export default function QuadraDetailsScreen({ route }) {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>{quadra.nome}</Text>
       <Text style={styles.subtitle}>Preço/Hora: R$ {quadra.preco_hora}</Text>
-
+      {quadra.hora_abertura && quadra.hora_fechamento && (
+        <Text style={styles.subtitle}>
+          Funcionamento: {quadra.hora_abertura} - {quadra.hora_fechamento}
+        </Text>
+      )}
       {quadra.promocao_ativa && (
         <Text style={[styles.subtitle, { color: 'green', marginTop: 10 }]}>
           Promoção: {quadra.descricao_promocao}
         </Text>
       )}
-
-      {/* Foto da quadra */}
       {quadra.foto ? (
         <Image
           source={{ uri: quadra.foto }}
@@ -52,14 +51,12 @@ export default function QuadraDetailsScreen({ route }) {
       ) : (
         <Text style={{ marginTop: 20 }}>Nenhuma foto cadastrada.</Text>
       )}
-
       <Text style={styles.subtitle}>
         Rede Disponível: {quadra.rede_disponivel ? 'Sim' : 'Não'}
       </Text>
       <Text style={styles.subtitle}>
         Bola Disponível: {quadra.bola_disponivel ? 'Sim' : 'Não'}
       </Text>
-
       {quadra.observacoes ? (
         <Text style={styles.subtitle}>Observações: {quadra.observacoes}</Text>
       ) : null}
@@ -79,3 +76,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
 });
+

@@ -1,5 +1,3 @@
-// src/features/admin/screens/CriarQuadraScreen.js
-
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, Switch,
@@ -10,6 +8,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../../services/api';
+import DateTimeButton from '../../jogos/components/DateTimeButton';
+import { DatePickerModal, TimePickerModal } from 'react-native-paper-dates';
 
 export default function CriarQuadraScreen({ route, navigation }) {
   const { companyId } = route.params;
@@ -22,6 +22,12 @@ export default function CriarQuadraScreen({ route, navigation }) {
   const [bolaDisponivel, setBolaDisponivel] = useState(false);
   const [observacoes, setObservacoes] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Novos campos para horário de funcionamento
+  const [horaAbertura, setHoraAbertura] = useState(new Date());
+  const [horaFechamento, setHoraFechamento] = useState(new Date());
+  const [showTimePickerAbertura, setShowTimePickerAbertura] = useState(false);
+  const [showTimePickerFechamento, setShowTimePickerFechamento] = useState(false);
 
   const handleSelectPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -36,6 +42,22 @@ export default function CriarQuadraScreen({ route, navigation }) {
     });
     if (!result.cancelled) {
       setFoto(result.uri);
+    }
+  };
+
+  const handleTimeChange = (pickerType, { hours, minutes }) => {
+    if (pickerType === 'abertura') {
+      const selected = new Date();
+      selected.setHours(hours);
+      selected.setMinutes(minutes);
+      setHoraAbertura(selected);
+      setShowTimePickerAbertura(false);
+    } else if (pickerType === 'fechamento') {
+      const selected = new Date();
+      selected.setHours(hours);
+      selected.setMinutes(minutes);
+      setHoraFechamento(selected);
+      setShowTimePickerFechamento(false);
     }
   };
 
@@ -55,6 +77,9 @@ export default function CriarQuadraScreen({ route, navigation }) {
         rede_disponivel: redeDisponivel,
         bola_disponivel: bolaDisponivel,
         observacoes,
+        // Novos campos de horário
+        hora_abertura: horaAbertura.toTimeString().slice(0,5),
+        hora_fechamento: horaFechamento.toTimeString().slice(0,5),
       };
 
       const response = await api.post('/api/superadmin/quadras', payload);
@@ -135,6 +160,41 @@ export default function CriarQuadraScreen({ route, navigation }) {
               keyboardType="numeric"
             />
           </View>
+        </View>
+
+        {/* Seção de Horário de Funcionamento */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Horário de Funcionamento</Text>
+          <View style={styles.dateTimeContainer}>
+            <DateTimeButton
+              label="Abertura"
+              value={horaAbertura.toTimeString().slice(0,5)}
+              onPress={() => setShowTimePickerAbertura(true)}
+              icon="time-outline"
+            />
+            <DateTimeButton
+              label="Fechamento"
+              value={horaFechamento.toTimeString().slice(0,5)}
+              onPress={() => setShowTimePickerFechamento(true)}
+              icon="time-outline"
+            />
+          </View>
+          <TimePickerModal
+            locale="pt-BR"
+            visible={showTimePickerAbertura}
+            onDismiss={() => setShowTimePickerAbertura(false)}
+            onConfirm={(time) => handleTimeChange('abertura', time)}
+            hours={horaAbertura.getHours()}
+            minutes={horaAbertura.getMinutes()}
+          />
+          <TimePickerModal
+            locale="pt-BR"
+            visible={showTimePickerFechamento}
+            onDismiss={() => setShowTimePickerFechamento(false)}
+            onConfirm={(time) => handleTimeChange('fechamento', time)}
+            hours={horaFechamento.getHours()}
+            minutes={horaFechamento.getMinutes()}
+          />
         </View>
 
         {/* Seção de Promoção */}
@@ -227,6 +287,41 @@ export default function CriarQuadraScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // ... mantenha os estilos já existentes e adicione os novos:
+  // Para os intervalos disponíveis em CriarJogo:
+  intervaloButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#EEE',
+    marginRight: 10,
+  },
+  intervaloButtonSelecionado: {
+    backgroundColor: '#4CAF50',
+  },
+  intervaloText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  intervaloBuscarButton: {
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  intervaloBuscarButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+  },
+  intervalosContainer: {
+    marginVertical: 10,
+  },
+  intervalosLabel: {
+    fontSize: 16,
+    marginBottom: 5,
+    color: '#333',
+  },
+  // ... (os demais estilos permanecem)
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -332,6 +427,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2D3748',
   },
+  dateTimeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+  },
   saveButton: {
     position: 'absolute',
     bottom: 24,
@@ -358,3 +458,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
+

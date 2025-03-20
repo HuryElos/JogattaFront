@@ -24,6 +24,7 @@ import PlacarScreen from '../features/jogos/screens/PlacarScreen';
 import LiveRoomScreen from '../features/jogos/screens/LiveRoomScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CompanyDetailsScreen from '../features/user/screens/CompanyDetailsScreen';
+import PartidasStackNavigator from './PartidasStackNavigator'; // Nova navegação para Partidas
 
 // Telas de Admin
 import CriarQuadraScreen from '../features/admin/screens/CriarQuadraScreen';
@@ -31,20 +32,6 @@ import GerenciarQuadraScreen from '../features/quadras/screens/GerenciarQuadraSc
 
 // Tela de explorar quadras (usuário comum)
 import ExploreQuadrasScreen from '../features/user/screens/ExploreQuadras';
-
-// Tela temporária para Partidas (exemplo)
-function PartidasTemporaryScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-      <Text style={{ fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 12 }}>
-        Em breve!
-      </Text>
-      <Text style={{ fontSize: 14, color: '#666', textAlign: 'center' }}>
-        A tela de Partidas está em desenvolvimento e estará disponível em breve.
-      </Text>
-    </View>
-  );
-}
 
 // ---------------------------------------------------------------------
 // Stacks
@@ -181,8 +168,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
   }, [state.index]);
 
   return (
-
-
     <View style={styles.tabBarContainer}>
       {/* Bolinha animada */}
       <Animated.View 
@@ -290,10 +275,10 @@ export default function AppNavigator() {
         options={{ title: 'Início' }}
       />
 
-      {/* ABA DE PARTIDAS (exemplo temporário) */}
+      {/* ABA DE PARTIDAS */}
       <Tab.Screen
         name="Partidas"
-        component={PartidasTemporaryScreen}
+        component={PartidasStackNavigator}
         options={{ title: 'Partidas' }}
       />
 
