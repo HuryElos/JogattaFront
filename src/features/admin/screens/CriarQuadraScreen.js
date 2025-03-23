@@ -23,9 +23,9 @@ export default function CriarQuadraScreen({ route, navigation }) {
   const [observacoes, setObservacoes] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Novos campos para horário de funcionamento
-  const [horaAbertura, setHoraAbertura] = useState(new Date());
-  const [horaFechamento, setHoraFechamento] = useState(new Date());
+  // Novos campos para horário de funcionamento iniciados com null
+  const [horaAbertura, setHoraAbertura] = useState(null);
+  const [horaFechamento, setHoraFechamento] = useState(null);
   const [showTimePickerAbertura, setShowTimePickerAbertura] = useState(false);
   const [showTimePickerFechamento, setShowTimePickerFechamento] = useState(false);
 
@@ -46,16 +46,13 @@ export default function CriarQuadraScreen({ route, navigation }) {
   };
 
   const handleTimeChange = (pickerType, { hours, minutes }) => {
+    const selected = new Date();
+    selected.setHours(hours);
+    selected.setMinutes(minutes);
     if (pickerType === 'abertura') {
-      const selected = new Date();
-      selected.setHours(hours);
-      selected.setMinutes(minutes);
       setHoraAbertura(selected);
       setShowTimePickerAbertura(false);
     } else if (pickerType === 'fechamento') {
-      const selected = new Date();
-      selected.setHours(hours);
-      selected.setMinutes(minutes);
       setHoraFechamento(selected);
       setShowTimePickerFechamento(false);
     }
@@ -64,6 +61,10 @@ export default function CriarQuadraScreen({ route, navigation }) {
   const handleCreate = async () => {
     if (!nome.trim()) {
       return Alert.alert('Atenção', 'Nome da quadra é obrigatório.');
+    }
+    // Verifica se os horários foram definidos
+    if (!horaAbertura || !horaFechamento) {
+      return Alert.alert('Atenção', 'Defina os horários de abertura e fechamento.');
     }
     setLoading(true);
     try {
@@ -77,9 +78,9 @@ export default function CriarQuadraScreen({ route, navigation }) {
         rede_disponivel: redeDisponivel,
         bola_disponivel: bolaDisponivel,
         observacoes,
-        // Novos campos de horário
-        hora_abertura: horaAbertura.toTimeString().slice(0,5),
-        hora_fechamento: horaFechamento.toTimeString().slice(0,5),
+        // Envia os horários no formato HH:MM
+        hora_abertura: horaAbertura.toTimeString().slice(0, 5),
+        hora_fechamento: horaFechamento.toTimeString().slice(0, 5),
       };
 
       const response = await api.post('/api/superadmin/quadras', payload);
@@ -168,13 +169,13 @@ export default function CriarQuadraScreen({ route, navigation }) {
           <View style={styles.dateTimeContainer}>
             <DateTimeButton
               label="Abertura"
-              value={horaAbertura.toTimeString().slice(0,5)}
+              value={horaAbertura ? horaAbertura.toTimeString().slice(0,5) : 'Selecionar'}
               onPress={() => setShowTimePickerAbertura(true)}
               icon="time-outline"
             />
             <DateTimeButton
               label="Fechamento"
-              value={horaFechamento.toTimeString().slice(0,5)}
+              value={horaFechamento ? horaFechamento.toTimeString().slice(0,5) : 'Selecionar'}
               onPress={() => setShowTimePickerFechamento(true)}
               icon="time-outline"
             />
@@ -184,16 +185,17 @@ export default function CriarQuadraScreen({ route, navigation }) {
             visible={showTimePickerAbertura}
             onDismiss={() => setShowTimePickerAbertura(false)}
             onConfirm={(time) => handleTimeChange('abertura', time)}
-            hours={horaAbertura.getHours()}
-            minutes={horaAbertura.getMinutes()}
+            // Caso horaAbertura seja null, usa os valores atuais como padrão
+            hours={horaAbertura ? horaAbertura.getHours() : new Date().getHours()}
+            minutes={horaAbertura ? horaAbertura.getMinutes() : new Date().getMinutes()}
           />
           <TimePickerModal
             locale="pt-BR"
             visible={showTimePickerFechamento}
             onDismiss={() => setShowTimePickerFechamento(false)}
             onConfirm={(time) => handleTimeChange('fechamento', time)}
-            hours={horaFechamento.getHours()}
-            minutes={horaFechamento.getMinutes()}
+            hours={horaFechamento ? horaFechamento.getHours() : new Date().getHours()}
+            minutes={horaFechamento ? horaFechamento.getMinutes() : new Date().getMinutes()}
           />
         </View>
 
@@ -287,8 +289,7 @@ export default function CriarQuadraScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // ... mantenha os estilos já existentes e adicione os novos:
-  // Para os intervalos disponíveis em CriarJogo:
+  // Estilos para os intervalos (mantidos ou adicionados conforme necessário)
   intervaloButton: {
     padding: 10,
     borderRadius: 8,
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#333',
   },
-  // ... (os demais estilos permanecem)
+  // Demais estilos existentes
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -458,4 +459,3 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
-

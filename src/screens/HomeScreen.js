@@ -336,6 +336,17 @@ export default function HomeScreen({ navigation }) {
             />
             <Text style={styles.actionText}>Equilibrar{'\n'}times</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+  style={styles.actionButton}
+  onPress={() => navigation.navigate('JogosFlow', { screen: 'Pagamento' })}
+>
+  <Image
+    // source={require('../../assets/icons/payments.png')} // Pode ser qualquer ícone ou um texto temporário
+    style={{ width: 24, height: 24 }}
+  />
+  <Text style={styles.actionText}>Pagamento</Text>
+</TouchableOpacity>
+
         </View>
 
         {/* EXPLORAR QUADRAS */}

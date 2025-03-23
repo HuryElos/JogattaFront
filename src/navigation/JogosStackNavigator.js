@@ -1,5 +1,3 @@
-// src/navigation/JogosStackNavigator.js
-
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -11,14 +9,18 @@ import JogoScreen from '../features/jogos/screens/JogoScreen';
 import TimesBalanceados from '../features/jogos/screens/TimesBalanceados';
 import LiveRoomScreen from '../features/jogos/screens/LiveRoomScreen';
 import ManualJogoScreen from '../features/jogos/screens/ManualJogoScreen';
-import ManualDistributionScreen from '../features/jogos/screens/ManualDistributionScreen'; // se ainda quiser manter
+import ManualDistributionScreen from '../features/jogos/screens/ManualDistributionScreen';
 import DefineTeamSizeScreen from '../features/jogos/screens/DefineTeamSizeScreen';
+
+// ➕ Importa a tela de pagamento
+import PagamentoScreen from '../features/jogos/screens/PagamentoScreen';
 
 const Stack = createStackNavigator();
 
 export default function JogosStackNavigator() {
   return (
     <Stack.Navigator>
+
       {/* Tela principal de Equilibrar Times */}
       <Stack.Screen
         name="EquilibrarTimesScreen"
@@ -33,7 +35,7 @@ export default function JogosStackNavigator() {
         options={{ title: 'Jogo' }}
       />
 
-      {/* Tela de Distribuição Manual (se quiser usar ou não) */}
+      {/* Tela de Distribuição Manual */}
       <Stack.Screen
         name="ManualDistributionScreen"
         component={ManualDistributionScreen}
@@ -75,12 +77,20 @@ export default function JogosStackNavigator() {
         options={{ title: 'Definir Tamanho' }}
       />
 
-      {/* Telas para fluxo manual -> agora vai para ManualJogoScreen */}
+      {/* Telas para fluxo manual */}
       <Stack.Screen
         name="ManualJogoScreen"
         component={ManualJogoScreen}
         options={{ title: 'Distribuir Manualmente' }}
       />
+
+      {/* ➕ Tela de Pagamento */}
+      <Stack.Screen
+        name="Pagamento"
+        component={PagamentoScreen}
+        options={{ title: 'Pagamento' }}
+      />
+
     </Stack.Navigator>
   );
 }

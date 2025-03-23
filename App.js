@@ -4,12 +4,14 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { Provider as PaperProvider } from 'react-native-paper';
 import * as SplashScreen from 'expo-splash-screen';
-import { LogBox } from 'react-native'; // Importar LogBox
-import './src/config/intl'; // Importando a configuração do Intl
+import { LogBox } from 'react-native';
+import './src/config/intl';
 
-// Ignorar warnings específicos
+// IMPORTA STRIPE
+import { StripeProvider } from '@stripe/stripe-react-native';
+
 LogBox.ignoreLogs([
-  "The action 'RESET' with payload", // Ignorar o warning de 'RESET'
+  "The action 'RESET' with payload",
 ]);
 
 SplashScreen.preventAutoHideAsync();
@@ -18,11 +20,11 @@ export default function App() {
   useEffect(() => {
     const prepareApp = async () => {
       try {
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Simula carregamento
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch (e) {
         console.warn(e);
       } finally {
-        await SplashScreen.hideAsync(); // Esconde a splash
+        await SplashScreen.hideAsync();
       }
     };
 
@@ -32,9 +34,12 @@ export default function App() {
   return (
     <AuthProvider>
       <PaperProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        {/* ENVOLVE AQUI */}
+        <StripeProvider publishableKey="pk_test_51N82cjDQ9JlHtXKK1xwPHGTbaa9IBeag6iImYX0R0Ce2GJOvRfSMSS2KzJII5xkZ1bavgWrmFrBjQ7TNDsiKvgOc0096dfHBBO">
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </StripeProvider>
       </PaperProvider>
     </AuthProvider>
   );
