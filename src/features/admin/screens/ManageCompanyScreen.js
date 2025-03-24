@@ -1,6 +1,6 @@
 // src/features/admin/screens/ManageCompanyScreen.js
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import {
   View,
   Text,
@@ -9,26 +9,35 @@ import {
   FlatList,
   Alert,
   ScrollView,
-  Platform,
-  Dimensions,
   RefreshControl,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform,
+  Dimensions
 } from 'react-native';
+
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../../services/api';
+import CompanyContext from '../../../contexts/CompanyContext';
 
 const { width } = Dimensions.get('window');
 
 export default function ManageCompanyScreen({ route, navigation }) {
-  const { company } = route.params;
+  const { company } = useContext(CompanyContext);
   const [quadras, setQuadras] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Estado para reservas pendentes
   const [reservasPendentes, setReservasPendentes] = useState([]);
   const [loadingReservas, setLoadingReservas] = useState(false);
+
+  // Verifica se os dados da empresa estão carregados
+  if (!company) {
+    return (
+      <View style={{ flex: 1, justifyContent:'center', alignItems:'center' }}>
+        <Text>Carregando dados da empresa...</Text>
+      </View>
+    );
+  }
 
   const fetchQuadrasDaEmpresa = async () => {
     setLoading(true);
@@ -61,7 +70,8 @@ export default function ManageCompanyScreen({ route, navigation }) {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([fetchQuadrasDaEmpresa(), fetchReservasPendentes()]).finally(() => setRefreshing(false));
+    Promise.all([fetchQuadrasDaEmpresa(), fetchReservasPendentes()])
+      .finally(() => setRefreshing(false));
   }, []);
 
   useEffect(() => {
@@ -69,7 +79,7 @@ export default function ManageCompanyScreen({ route, navigation }) {
     fetchReservasPendentes();
   }, []);
 
-  // Função para confirmar uma reserva - MODIFICADA
+  // Função para confirmar uma reserva
   const handleConfirmReserva = async (id_reserva, id_jogo) => {
     try {
       // Inclui o id_jogo no corpo da requisição para satisfazer o roleMiddleware
@@ -77,7 +87,6 @@ export default function ManageCompanyScreen({ route, navigation }) {
         status: 'aprovada',
         id_jogo: id_jogo
       });
-      
       Alert.alert('Sucesso', 'Reserva confirmada com sucesso!');
       fetchReservasPendentes(); // Atualiza a lista após confirmar
     } catch (error) {
@@ -86,15 +95,13 @@ export default function ManageCompanyScreen({ route, navigation }) {
     }
   };
 
-  // Função para rejeitar uma reserva - MODIFICADA
+  // Função para rejeitar uma reserva
   const handleRejectReserva = async (id_reserva, id_jogo) => {
     try {
-      // Inclui o id_jogo no corpo da requisição para satisfazer o roleMiddleware
       await api.put(`/api/jogador/reservas/${id_reserva}/status`, { 
         status: 'rejeitada',
         id_jogo: id_jogo
       });
-      
       Alert.alert('Sucesso', 'Reserva rejeitada com sucesso!');
       fetchReservasPendentes(); // Atualiza a lista após rejeitar
     } catch (error) {
@@ -155,7 +162,6 @@ export default function ManageCompanyScreen({ route, navigation }) {
     </TouchableOpacity>
   );
 
-  // Renderizar o item de reserva - MODIFICADO para passar id_jogo
   const renderReservaItem = ({ item }) => (
     <View style={styles.reservaCard}>
       <Text style={styles.reservaTitulo}>{item.nome_jogo || 'Reserva'}</Text>
@@ -262,7 +268,6 @@ export default function ManageCompanyScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* NOVA SEÇÃO: Solicitações de Reserva */}
         <View style={styles.reservasSection}>
           <Text style={styles.sectionTitle}>Solicitações de Reserva</Text>
           {loadingReservas ? (
@@ -354,20 +359,12 @@ const styles = StyleSheet.create({
   disponibilidadeText: { fontSize: 14, color: '#333', marginTop: 5 },
   quadraActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   featuresContainer: { flexDirection: 'row', gap: 8 },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EBF8FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
+  featureItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EBF8FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
   featureText: { fontSize: 12, color: '#4A90E2', marginLeft: 4 },
   loadingContainer: { alignItems: 'center', padding: 40 },
   loadingText: { fontSize: 16, color: '#718096', marginTop: 12 },
   emptyContainer: { alignItems: 'center', padding: 40 },
   emptyText: { fontSize: 16, color: '#718096', marginTop: 12 },
-  // Estilos para os cards de reserva pendente
   reservasSection: { padding: 16 },
   reservaCard: {
     backgroundColor: '#FFF',

@@ -6,9 +6,8 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import * as SplashScreen from 'expo-splash-screen';
 import { LogBox } from 'react-native';
 import './src/config/intl';
-
-// IMPORTA STRIPE
 import { StripeProvider } from '@stripe/stripe-react-native';
+import { CompanyProvider } from './src/contexts/CompanyContext'; // <= IMPORTA AQUI
 
 LogBox.ignoreLogs([
   "The action 'RESET' with payload",
@@ -32,15 +31,16 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <PaperProvider>
-        {/* ENVOLVE AQUI */}
-        <StripeProvider publishableKey="pk_test_51N82cjDQ9JlHtXKK1xwPHGTbaa9IBeag6iImYX0R0Ce2GJOvRfSMSS2KzJII5xkZ1bavgWrmFrBjQ7TNDsiKvgOc0096dfHBBO">
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </StripeProvider>
-      </PaperProvider>
-    </AuthProvider>
+    <CompanyProvider> {/* CompanyProvider por fora */}
+  <AuthProvider>
+    <PaperProvider>
+      <StripeProvider publishableKey="pk_test_51N82cjDQ9JlHtXKK1xwPHGTbaa9IBeag6iImYX0R0Ce2GJOvRfSMSS2KzJII5xkZ1bavgWrmFrBjQ7TNDsiKvgOc0096dfHBBO">
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </StripeProvider>
+    </PaperProvider>
+  </AuthProvider>
+</CompanyProvider>
   );
 }

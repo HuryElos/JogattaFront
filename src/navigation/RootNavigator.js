@@ -1,15 +1,14 @@
-// src/navigation/RootNavigator.js
-
 import React, { useContext } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import AuthContext from '../contexts/AuthContext';
 
-// Nossos stacks
+// Importa os stacks existentes
 import AuthStackNavigator from './AuthStackNavigator';
 import AdminStackNavigator from './AdminStackNavigator';
 import AppNavigator from './AppNavigator';
+import GestorStackNavigator from './GestorStackNavigator';
 
-// Outras telas que ficam "fora" (podem ser acessadas de qualquer stack).
+// Outras telas extras
 import InviteHandlerScreen from '../screens/InviteHandlerScreen';
 import ViewProfileScreen from '../features/perfil/screens/ViewProfileScreen';
 
@@ -18,30 +17,20 @@ const Stack = createStackNavigator();
 export default function RootNavigator() {
   const { user } = useContext(AuthContext);
   const isSuperAdmin = user?.role === 'superadmin';
+  const isGestor = user?.role === 'gestor';
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
-        // Se não há user logado, mostra o fluxo de Autenticação
-        <Stack.Screen
-          name="AuthStack"
-          component={AuthStackNavigator}
-        />
+        <Stack.Screen name="AuthStack" component={AuthStackNavigator} />
       ) : isSuperAdmin ? (
-        // Se o user está logado E é superadmin, mostra AdminStack
-        <Stack.Screen
-          name="AdminStack"
-          component={AdminStackNavigator}
-        />
+        <Stack.Screen name="AdminStack" component={AdminStackNavigator} />
+      ) : isGestor ? (
+        <Stack.Screen name="GestorStack" component={GestorStackNavigator} />
       ) : (
-        // Senão, mostra o AppNavigator (usuário comum)
-        <Stack.Screen
-          name="MainApp"
-          component={AppNavigator}
-        />
+        <Stack.Screen name="MainApp" component={AppNavigator} />
       )}
-
-      {/* Exemplo de telas extras que podem aparecer de qualquer lugar */}
+      {/* Telas extras */}
       <Stack.Screen
         name="InviteHandler"
         component={InviteHandlerScreen}

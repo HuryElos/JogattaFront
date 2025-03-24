@@ -23,7 +23,7 @@ export const login = async (email, senha) => {
   }
 };
 
-// Função para registro
+// Função para registro (Jogador)
 export const register = async (nome, email, senha, tt, altura) => {
   try {
     const response = await api.post('/api/auth/register', { nome, email, senha, tt, altura });
@@ -41,20 +41,46 @@ export const register = async (nome, email, senha, tt, altura) => {
   }
 };
 
+/**
+ * Função para registro de Dono de Quadra (Gestor)
+ * Chama o endpoint: /api/empresas/cadastro
+ */
+export const registerCourtOwner = async (companyName, email, password, cnpj, phone, address) => {
+  try {
+    const body = {
+      nome: companyName,
+      email_empresa: email,
+      senha: password,
+      cnpj: cnpj,
+      contato: phone,
+      endereco: address
+    };
+    const response = await api.post('/api/empresas/cadastro', body);
+    console.log('Resposta do registro de Dono de Quadra:', response.data);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error('Erro ao registrar dono de quadra (resposta da API):', error.response.data);
+    } else if (error.request) {
+      console.error('Erro ao registrar dono de quadra (sem resposta do servidor):', error.request);
+    } else {
+      console.error('Erro ao registrar dono de quadra (configuração):', error.message);
+    }
+    throw new Error('Falha no registro de Dono de Quadra. Tente novamente.');
+  }
+};
+
 // Função para listar amigos
 export const listarAmigos = async (organizador_id) => {
   try {
     console.log('Listar amigos com ID:', organizador_id);
     const response = await api.get(`/api/amigos/listar/${organizador_id}`);
-    
-    // Garantir que cada amigo tenha o campo imagem_perfil preenchido
     const amigos = response.data.map((amigo) => ({
       ...amigo,
-      imagem_perfil: amigo.imagem_perfil || 'https://via.placeholder.com/50', // Imagem padrão
+      imagem_perfil: amigo.imagem_perfil || 'https://via.placeholder.com/50',
     }));
-    
     console.log('Lista de amigos processada:', amigos);
-    return amigos; // Retorna a lista de amigos
+    return amigos;
   } catch (error) {
     if (error.response) {
       console.error('Erro ao listar amigos (resposta da API):', error.response.data);
@@ -100,7 +126,6 @@ export const editarProfile = async (imageUri) => {
     const decodedToken = jwtDecode(token);
     const userId = decodedToken.id;
 
-    // Chama a rota de atualização da foto no backend
     const response = await api.put(`/api/jogador/imagem_perfil`, {
       id_usuario: userId,
       imagem_perfil: imageUri,
@@ -109,14 +134,14 @@ export const editarProfile = async (imageUri) => {
     });
 
     console.log('Resposta ao editar perfil:', response.data);
-    return response.data.usuario; // Retorna o usuário atualizado (com imagem_perfil atualizada)
+    return response.data.usuario;
   } catch (error) {
     console.error('Erro ao editar perfil:', error);
     throw new Error('Falha ao editar perfil. Tente novamente.');
   }
 };
 
-// **Nova Função: Atualizar Descrição do Perfil**
+// Nova Função: Atualizar Descrição do Perfil
 export const atualizarDescricao = async (descricao) => {
   try {
     const token = await AsyncStorage.getItem('token');
@@ -124,7 +149,6 @@ export const atualizarDescricao = async (descricao) => {
     const decodedToken = jwtDecode(token);
     const userId = decodedToken.id;
 
-    // Enviando apenas `descricao` e `id_usuario`
     const response = await api.put(`/api/jogador/descricao`, {
       id_usuario: userId,
       descricao: descricao,
@@ -133,7 +157,7 @@ export const atualizarDescricao = async (descricao) => {
     });
 
     console.log('Resposta ao atualizar descrição:', response.data);
-    return response.data.usuario; // Retorna o usuário atualizado (com descrição atualizada)
+    return response.data.usuario;
   } catch (error) {
     console.error('Erro ao atualizar descrição:', error);
     throw new Error('Falha ao atualizar descrição. Tente novamente.');
@@ -184,14 +208,11 @@ export const buscarPerfilJogador = async () => {
     if (!token) {
       throw new Error('Token não encontrado. Faça login novamente.');
     }
-
-    // Chama a API com o cabeçalho Authorization correto.
     const response = await api.get('/api/jogador/perfil', {
       headers: { Authorization: `Bearer ${token}` },
     });
-
     console.log('Perfil do jogador:', response.data);
-    return response.data; // Retorna o usuário completo
+    return response.data;
   } catch (error) {
     console.error('Erro ao buscar perfil do jogador:', error);
     throw new Error('Falha ao buscar perfil. Tente novamente.');
@@ -210,9 +231,9 @@ export const acessarRotaProtegida = async () => {
 };
 
 // Função para buscar avaliações
-export const buscarAvaliacoes = async (organizador_id ) => {
+export const buscarAvaliacoes = async (organizador_id) => {
   try {
-    const response = await api.get(`/api/avaliacoes/organizador/${organizador_id }`);
+    const response = await api.get(`/api/avaliacoes/organizador/${organizador_id}`);
     console.log('Jogadores e avaliações recuperados:', response.data);
     return response.data;
   } catch (error) {
