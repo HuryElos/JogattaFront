@@ -18,7 +18,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import CONFIG from '../../../config/config';  // Importa seu config
+import CONFIG from '../../../config/config';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,7 +29,7 @@ const LoginScreen = ({ navigation, route }) => {
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [userRole, setUserRole] = useState(initialUserRole);
-  const { login: loginContext } = useContext(AuthContext);
+  const { login: loginContext, user } = useContext(AuthContext);
 
   // Configura autenticação com Google
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -52,9 +52,53 @@ const LoginScreen = ({ navigation, route }) => {
     }
   }, [response]);
 
+  // Função para navegar para a tela correta com base no papel do usuário
+  const navigateBasedOnRole = async () => {
+    try {
+      // Buscar dados do usuário do AsyncStorage
+      const userData = await AsyncStorage.getItem('user_data');
+      const userDataObj = userData ? JSON.parse(userData) : null;
+      const storedRole = await AsyncStorage.getItem('userRole');
+      
+      console.log('Navegando com base no papel:', {
+        contextRole: user?.role,
+        contextMappedRole: user?.mappedRole,
+        storedRole,
+        userData: userDataObj?.papel_usuario
+      });
+      
+      // Verificar o papel do usuário a partir de múltiplas fontes
+      const userPapel = user?.role || userDataObj?.papel_usuario;
+      const mappedRole = user?.mappedRole || storedRole || 'player';
+      
+      // Decidir para onde navegar
+      if (userPapel === 'gestor' || mappedRole === 'courtOwner') {
+        console.log('Navegando para GestorStack');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'GestorStack' }],
+        });
+      } else if (mappedRole === 'player') {
+        console.log('Navegando para MainApp');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainApp' }],
+        });
+      } else {
+        console.log('Navegando para rota padrão MainApp');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainApp' }],
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao navegar baseado no papel:', error);
+      navigation.navigate('MainApp'); // Fallback seguro
+    }
+  };
+
   const handleGoogleLogin = async (token) => {
     try {
-      // Usa o BASE_URL do config
       const res = await fetch(`${CONFIG.BASE_URL}/api/auth/google/callback`, {
         method: 'GET',
         headers: {
@@ -66,7 +110,7 @@ const LoginScreen = ({ navigation, route }) => {
       if (data.token) {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('userRole', userRole);
-        navigation.navigate(userRole === 'player' ? 'PlayerDashboard' : 'CourtOwnerDashboard');
+        navigateBasedOnRole();
       } else {
         Alert.alert('Erro', 'Não foi possível autenticar com Google.');
       }
@@ -84,9 +128,14 @@ const LoginScreen = ({ navigation, route }) => {
 
     try {
       const success = await loginContext(email, password, userRole);
+
+      
       if (success) {
-        await AsyncStorage.setItem('userRole', userRole);
-        navigation.navigate(userRole === 'player' ? 'PlayerDashboard' : 'CourtOwnerDashboard');
+        console.log('Login bem-sucedido, redirecionando...');
+        // Adicionar um pequeno atraso para garantir que os estados sejam atualizados
+        setTimeout(() => {
+          navigateBasedOnRole();
+        }, 300);
       } else {
         Alert.alert('Erro de Login', 'Usuário ou senha inválidos.');
       }

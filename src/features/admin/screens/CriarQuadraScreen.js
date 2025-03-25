@@ -22,6 +22,7 @@ export default function CriarQuadraScreen({ route, navigation }) {
   const [bolaDisponivel, setBolaDisponivel] = useState(false);
   const [observacoes, setObservacoes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [capacidade, setCapacidade] = useState('');
 
   // Novos campos para horário de funcionamento iniciados com null
   const [horaAbertura, setHoraAbertura] = useState(null);
@@ -40,7 +41,7 @@ export default function CriarQuadraScreen({ route, navigation }) {
       allowsEditing: true,
       quality: 0.7,
     });
-    if (!result.cancelled) {
+    if (!result.cancelled && !result.canceled) {
       setFoto(result.uri);
     }
   };
@@ -78,18 +79,21 @@ export default function CriarQuadraScreen({ route, navigation }) {
         rede_disponivel: redeDisponivel,
         bola_disponivel: bolaDisponivel,
         observacoes,
+        capacidade: capacidade || "0",
         // Envia os horários no formato HH:MM
         hora_abertura: horaAbertura.toTimeString().slice(0, 5),
         hora_fechamento: horaFechamento.toTimeString().slice(0, 5),
       };
 
-      const response = await api.post('/api/superadmin/quadras', payload);
+      // Corrigido o endpoint para utilizar a rota de empresas/quadras
+      const response = await api.post('/api/empresas/quadras', payload);
 
-      if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
+        Alert.alert('Sucesso', 'Quadra cadastrada com sucesso!');
         navigation.setParams({ newQuadraAdded: true });
         navigation.goBack();
       } else {
-        Alert.alert('Erro', 'Não foi possível cadastrar a quadra (status != 201).');
+        Alert.alert('Erro', 'Não foi possível cadastrar a quadra.');
       }
     } catch (error) {
       console.log('Erro ao criar quadra:', error?.response?.data || error.message);
@@ -158,6 +162,16 @@ export default function CriarQuadraScreen({ route, navigation }) {
               placeholder="Preço por Hora"
               value={precoHora}
               onChangeText={setPrecoHora}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={styles.inputContainer}>
+            <MaterialCommunityIcons name="account-group" size={20} color="#4A90E2" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Capacidade (número de pessoas)"
+              value={capacidade}
+              onChangeText={setCapacidade}
               keyboardType="numeric"
             />
           </View>

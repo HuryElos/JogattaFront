@@ -5,10 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 
 // Função para login
-export const login = async (email, senha) => {
-  console.log('Iniciando login com:', { email, senha });
+export const login = async (email, senha, userRole) => {
+  console.log('Iniciando login com:', { email, senha, userRole });
   try {
-    const response = await api.post('/api/auth/login', { email, senha });
+    const endpoint = userRole === 'courtOwner' 
+  ? '/api/empresas/login' 
+  : '/api/auth/login';
+
+const response = await api.post(endpoint, { email, senha });
     console.log('Resposta do login:', response.data);
     return response.data; // Retorna {token, user, ...}
   } catch (error) {
