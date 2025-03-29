@@ -1,8 +1,17 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, FlatList,
-  ActivityIndicator, Alert, StyleSheet, ScrollView,
-  Dimensions, Platform, Animated, RefreshControl
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  Platform,
+  Animated,
+  RefreshControl
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,10 +40,9 @@ export default function AdminHomeScreen({ navigation }) {
   const hideNotificationTimeout = useRef(null);
   const badgeAnim = useRef(new Animated.Value(0)).current;
 
-  // Função para exibir a notificação (como um botão sutil)
+  // Função para exibir notificação
   const displayNotification = () => {
     setShowNotification(true);
-    // Inicia a animação para "deslizar" a notificação para dentro
     setTimeout(() => {
       notificationAnim.setValue(-100);
       Animated.spring(notificationAnim, {
@@ -43,8 +51,6 @@ export default function AdminHomeScreen({ navigation }) {
         tension: 50,
         friction: 7,
       }).start();
-  
-      // Agenda o hide após 5 segundos
       if (hideNotificationTimeout.current) {
         clearTimeout(hideNotificationTimeout.current);
       }
@@ -54,13 +60,12 @@ export default function AdminHomeScreen({ navigation }) {
     }, 100);
   };
 
-  // Função para ocultar a notificação
+  // Função para ocultar notificação
   const hideNotification = () => {
     if (hideNotificationTimeout.current) {
       clearTimeout(hideNotificationTimeout.current);
       hideNotificationTimeout.current = null;
     }
-    
     Animated.spring(notificationAnim, {
       toValue: -100,
       useNativeDriver: true,
@@ -71,7 +76,6 @@ export default function AdminHomeScreen({ navigation }) {
     });
   };
 
-  // Ao tocar na notificação, apenas a oculta (a lista já foi atualizada)
   const handleNotificationPress = () => {
     hideNotification();
   };
@@ -135,7 +139,7 @@ export default function AdminHomeScreen({ navigation }) {
     }
   };
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchCompanies().finally(() => setRefreshing(false));
   }, []);
@@ -160,7 +164,6 @@ export default function AdminHomeScreen({ navigation }) {
     return unsubscribe;
   }, [navigation]);
 
-  // Limpa o timeout se o componente for desmontado
   useEffect(() => {
     return () => {
       if (hideNotificationTimeout.current) {
@@ -168,6 +171,18 @@ export default function AdminHomeScreen({ navigation }) {
       }
     };
   }, []);
+
+  // Função para aprovar empresa (muda status para ativo)
+  const handleApproveCompany = async (id_empresa) => {
+    try {
+      const response = await api.patch(`/api/empresas/${id_empresa}/aprovar`);
+      Alert.alert('Sucesso', 'Empresa aprovada com sucesso!');
+      fetchCompanies();
+    } catch (error) {
+      console.error('Erro ao aprovar empresa:', error?.response?.data || error.message);
+      Alert.alert('Erro', 'Não foi possível aprovar a empresa. Tente novamente.');
+    }
+  };
 
   const renderStatsCard = (title, value, icon, color) => (
     <View style={[styles.statsCard, { backgroundColor: color }]}>
@@ -197,7 +212,7 @@ export default function AdminHomeScreen({ navigation }) {
           <View style={styles.companyInfo}>
             <Text style={styles.companyName}>{item.nome}</Text>
             <Text style={styles.companyStatus}>
-              {item.status === 'ativo' ? 'Ativo' : 'Inativo'}
+              {item.status === 'ativo' ? 'Ativo' : 'Pendente'}
             </Text>
           </View>
         </View>
@@ -216,6 +231,16 @@ export default function AdminHomeScreen({ navigation }) {
             <Text style={styles.detailText}>{item.quadras?.length || 0} quadras</Text>
           </View>
         </View>
+
+        {/* Se a empresa estiver pendente, exibe botão para aprovar */}
+        {item.status === 'pendente' && (
+          <TouchableOpacity
+            style={styles.approveButton}
+            onPress={() => handleApproveCompany(item.id_empresa)}
+          >
+            <Text style={styles.approveButtonText}>Aprovar</Text>
+          </TouchableOpacity>
+        )}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -240,7 +265,7 @@ export default function AdminHomeScreen({ navigation }) {
               <Ionicons name="add-circle-outline" size={20} color="#FFF" />
               <Text style={styles.addButtonText}>Nova Empresa</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+            <TouchableOpacity style={styles.logoutButton} onPress={() => { logout(); navigation.navigate('AuthStack'); }}>
               <Ionicons name="log-out-outline" size={24} color="#FFF" />
             </TouchableOpacity>
           </View>
@@ -397,7 +422,7 @@ export default function AdminHomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8FAFC'
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -682,5 +707,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 8,
+  },
+  // Novo estilo para botão de aprovação
+  approveButton: {
+    marginTop: 12,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  approveButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

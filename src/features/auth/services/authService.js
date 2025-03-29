@@ -8,9 +8,7 @@ import jwtDecode from 'jwt-decode';
 export const login = async (email, senha, userRole) => {
   console.log('Iniciando login com:', { email, senha, userRole });
   try {
-    const endpoint = userRole === 'courtOwner' 
-  ? '/api/empresas/login' 
-  : '/api/auth/login';
+    const endpoint = '/api/auth/login';
 
 const response = await api.post(endpoint, { email, senha });
     console.log('Resposta do login:', response.data);

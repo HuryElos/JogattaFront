@@ -86,7 +86,8 @@ export default function CriarQuadraScreen({ route, navigation }) {
       };
 
       // Corrigido o endpoint para utilizar a rota de empresas/quadras
-      const response = await api.post('/api/empresas/quadras', payload);
+      const response = await api.post(`/api/empresas/${companyId}/quadras`, payload);
+
 
       if (response.status === 201 || response.status === 200) {
         Alert.alert('Sucesso', 'Quadra cadastrada com sucesso!');

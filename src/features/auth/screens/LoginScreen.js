@@ -1,10 +1,10 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -24,14 +24,14 @@ const { width, height } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation, route }) => {
   const initialUserRole = route.params?.initialRole || 'player';
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [userRole, setUserRole] = useState(initialUserRole);
   const { login: loginContext, user } = useContext(AuthContext);
 
-  // Configura autenticação com Google
+  // Configura autenticação com Google (se aplicável)
   const [request, response, promptAsync] = Google.useAuthRequest({
     expoClientId: 'SEU_EXPO_CLIENT_ID',
     iosClientId: 'SEU_IOS_CLIENT_ID',
@@ -45,6 +45,7 @@ const LoginScreen = ({ navigation, route }) => {
     }
   }, [route.params]);
 
+  // Quando o Google OAuth finaliza
   useEffect(() => {
     if (response?.type === 'success') {
       const { authentication } = response;
@@ -52,53 +53,60 @@ const LoginScreen = ({ navigation, route }) => {
     }
   }, [response]);
 
-  // Função para navegar para a tela correta com base no papel do usuário
+  // --------------------------------------
+  // Decide qual stack/rota abrir
+  // --------------------------------------
   const navigateBasedOnRole = async () => {
     try {
       // Buscar dados do usuário do AsyncStorage
       const userData = await AsyncStorage.getItem('user_data');
       const userDataObj = userData ? JSON.parse(userData) : null;
       const storedRole = await AsyncStorage.getItem('userRole');
-      
-      console.log('Navegando com base no papel:', {
+
+      console.log('[LoginScreen] Navegando com base no papel:', {
         contextRole: user?.role,
         contextMappedRole: user?.mappedRole,
         storedRole,
         userData: userDataObj?.papel_usuario
       });
-      
+
       // Verificar o papel do usuário a partir de múltiplas fontes
       const userPapel = user?.role || userDataObj?.papel_usuario;
+      // “mappedRole” existe se você estiver convertendo 'gestor' para 'courtOwner', etc. 
       const mappedRole = user?.mappedRole || storedRole || 'player';
-      
-      // Decidir para onde navegar
+
       if (userPapel === 'gestor' || mappedRole === 'courtOwner') {
-        console.log('Navegando para GestorStack');
+        console.log('[LoginScreen] -> GestorStack');
         navigation.reset({
           index: 0,
           routes: [{ name: 'GestorStack' }],
         });
       } else if (mappedRole === 'player') {
-        console.log('Navegando para MainApp');
+        console.log('[LoginScreen] -> MainApp (player)');
         navigation.reset({
           index: 0,
           routes: [{ name: 'MainApp' }],
         });
       } else {
-        console.log('Navegando para rota padrão MainApp');
+        // Fallback: se não tem nada definido, joga no player
+        console.log('[LoginScreen] -> MainApp (fallback)');
         navigation.reset({
           index: 0,
           routes: [{ name: 'MainApp' }],
         });
       }
     } catch (error) {
-      console.error('Erro ao navegar baseado no papel:', error);
+      console.error('[LoginScreen] Erro ao navegar baseado no papel:', error);
       navigation.navigate('MainApp'); // Fallback seguro
     }
   };
 
+  // --------------------------------------
+  // Google login (opcional)
+  // --------------------------------------
   const handleGoogleLogin = async (token) => {
     try {
+      // Exemplo de chamada a backend, se você tiver /api/auth/google/callback
       const res = await fetch(`${CONFIG.BASE_URL}/api/auth/google/callback`, {
         method: 'GET',
         headers: {
@@ -115,11 +123,14 @@ const LoginScreen = ({ navigation, route }) => {
         Alert.alert('Erro', 'Não foi possível autenticar com Google.');
       }
     } catch (error) {
-      console.error('Erro ao autenticar com Google:', error);
+      console.error('[LoginScreen] Erro ao autenticar com Google:', error);
       Alert.alert('Erro', 'Ocorreu um erro durante a autenticação com Google.');
     }
   };
 
+  // --------------------------------------
+  // Login normal
+  // --------------------------------------
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
@@ -129,10 +140,8 @@ const LoginScreen = ({ navigation, route }) => {
     try {
       const success = await loginContext(email, password, userRole);
 
-      
       if (success) {
-        console.log('Login bem-sucedido, redirecionando...');
-        // Adicionar um pequeno atraso para garantir que os estados sejam atualizados
+        console.log('[LoginScreen] Login bem-sucedido. Redirecionando...');
         setTimeout(() => {
           navigateBasedOnRole();
         }, 300);
@@ -140,11 +149,14 @@ const LoginScreen = ({ navigation, route }) => {
         Alert.alert('Erro de Login', 'Usuário ou senha inválidos.');
       }
     } catch (error) {
-      console.error('Erro ao realizar login:', error.message || error);
+      console.error('[LoginScreen] Erro ao realizar login:', error.message || error);
       Alert.alert('Erro', 'Ocorreu um erro ao realizar login. Tente novamente.');
     }
   };
 
+  // --------------------------------------
+  // Troca entre “Jogador” e “Gestor”
+  // --------------------------------------
   const toggleUserRole = () => {
     const newRole = userRole === 'player' ? 'courtOwner' : 'player';
     setUserRole(newRole);
@@ -152,6 +164,9 @@ const LoginScreen = ({ navigation, route }) => {
     setPassword('');
   };
 
+  // --------------------------------------
+  // Layouts específicos
+  // --------------------------------------
   const PlayerHeader = () => (
     <View style={playerStyles.header}>
       <LinearGradient
@@ -160,10 +175,7 @@ const LoginScreen = ({ navigation, route }) => {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <Image 
-          style={playerStyles.ballIcon}
-          resizeMode="contain"
-        />
+        <Image style={playerStyles.ballIcon} resizeMode="contain" />
         <Text style={playerStyles.title}>Bem-vindo de volta!</Text>
         <Text style={playerStyles.subtitle}>Pronto para organizar seu próximo jogo?</Text>
       </LinearGradient>
@@ -171,8 +183,8 @@ const LoginScreen = ({ navigation, route }) => {
   );
 
   const PlayerLoginButton = () => (
-    <TouchableOpacity 
-      style={playerStyles.loginButtonContainer} 
+    <TouchableOpacity
+      style={playerStyles.loginButtonContainer}
       onPress={handleLogin}
       activeOpacity={0.9}
     >
@@ -206,8 +218,8 @@ const LoginScreen = ({ navigation, route }) => {
   );
 
   const CourtOwnerLoginButton = () => (
-    <TouchableOpacity 
-      style={courtOwnerStyles.loginButtonContainer} 
+    <TouchableOpacity
+      style={courtOwnerStyles.loginButtonContainer}
       onPress={handleLogin}
       activeOpacity={0.9}
     >
@@ -223,10 +235,13 @@ const LoginScreen = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
+  // --------------------------------------
+  // Render principal
+  // --------------------------------------
   return (
     <View style={styles.container}>
       {userRole === 'player' ? <PlayerHeader /> : <CourtOwnerHeader />}
-      
+
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -234,21 +249,26 @@ const LoginScreen = ({ navigation, route }) => {
         >
           <View style={styles.formContainer}>
             <View style={styles.formContent}>
+              {/* E-MAIL */}
               <View style={styles.inputGroup}>
-                <Text style={[
-                  styles.inputLabel,
-                  userRole === 'courtOwner' && courtOwnerStyles.inputLabel
-                ]}>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    userRole === 'courtOwner' && courtOwnerStyles.inputLabel
+                  ]}
+                >
                   E-mail
                 </Text>
-                <View style={[
-                  styles.inputWrapper,
-                  userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
-                ]}>
-                  <Ionicons 
-                    name="mail-outline" 
-                    size={20} 
-                    color={userRole === 'player' ? "#37A0EC" : "#2F5BA7"} 
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
+                  ]}
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -262,22 +282,27 @@ const LoginScreen = ({ navigation, route }) => {
                   />
                 </View>
               </View>
-              
+
+              {/* SENHA */}
               <View style={styles.inputGroup}>
-                <Text style={[
-                  styles.inputLabel,
-                  userRole === 'courtOwner' && courtOwnerStyles.inputLabel
-                ]}>
+                <Text
+                  style={[
+                    styles.inputLabel,
+                    userRole === 'courtOwner' && courtOwnerStyles.inputLabel
+                  ]}
+                >
                   Senha
                 </Text>
-                <View style={[
-                  styles.inputWrapper,
-                  userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
-                ]}>
-                  <Ionicons 
-                    name="lock-closed-outline" 
-                    size={20} 
-                    color={userRole === 'player' ? "#37A0EC" : "#2F5BA7"} 
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
+                  ]}
+                >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
                     style={styles.inputIcon}
                   />
                   <TextInput
@@ -288,74 +313,87 @@ const LoginScreen = ({ navigation, route }) => {
                     secureTextEntry={secureTextEntry}
                     placeholderTextColor="#999"
                   />
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => setSecureTextEntry(!secureTextEntry)}
                     style={styles.eyeIcon}
                   >
-                    <Ionicons 
-                      name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'} 
-                      size={22} 
-                      color={userRole === 'player' ? "#37A0EC" : "#2F5BA7"} 
+                    <Ionicons
+                      name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                      size={22}
+                      color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
-              
+
+              {/* Esqueceu a senha */}
               <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={[
-                  styles.forgotPasswordText,
-                  userRole === 'courtOwner' && courtOwnerStyles.forgotPasswordText
-                ]}>
+                <Text
+                  style={[
+                    styles.forgotPasswordText,
+                    userRole === 'courtOwner' && courtOwnerStyles.forgotPasswordText
+                  ]}
+                >
                   Esqueceu a senha?
                 </Text>
               </TouchableOpacity>
-              
+
+              {/* BOTÃO DE LOGIN */}
               {userRole === 'player' ? <PlayerLoginButton /> : <CourtOwnerLoginButton />}
-              
+
+              {/* DIVISOR */}
               <View style={styles.dividerContainer}>
                 <View style={styles.divider} />
                 <Text style={styles.dividerText}>ou</Text>
                 <View style={styles.divider} />
               </View>
-              
-              <TouchableOpacity 
+
+              {/* BOTÃO LOGIN GOOGLE */}
+              <TouchableOpacity
                 style={[
                   styles.googleButton,
                   userRole === 'courtOwner' && courtOwnerStyles.googleButton
-                ]} 
+                ]}
                 onPress={() => promptAsync()}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.googleButtonText,
-                  userRole === 'courtOwner' && courtOwnerStyles.googleButtonText
-                ]}>
-                  <Text style={{color: '#EA4335'}}>G</Text> Continuar com Google
+                <Text
+                  style={[
+                    styles.googleButtonText,
+                    userRole === 'courtOwner' && courtOwnerStyles.googleButtonText
+                  ]}
+                >
+                  <Text style={{ color: '#EA4335' }}>G</Text> Continuar com Google
                 </Text>
               </TouchableOpacity>
-              
+
+              {/* LINK REGISTER */}
               <View style={styles.registerContainer}>
                 <Text style={styles.registerText}>Não tem uma conta? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Register', { initialRole: userRole })}>
-                  <Text style={[
-                    styles.registerLink,
-                    userRole === 'courtOwner' && courtOwnerStyles.registerLink
-                  ]}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Register', { initialRole: userRole })}
+                >
+                  <Text
+                    style={[
+                      styles.registerLink,
+                      userRole === 'courtOwner' && courtOwnerStyles.registerLink
+                    ]}
+                  >
                     Cadastre-se
                   </Text>
                 </TouchableOpacity>
               </View>
-              
-              <TouchableOpacity
-                style={styles.switchRoleButton}
-                onPress={toggleUserRole}
-              >
-                <Text style={[
-                  styles.switchRoleText,
-                  userRole === 'courtOwner' && courtOwnerStyles.switchRoleText
-                ]}>
-                  {userRole === 'player' 
-                    ? 'Acesso para Donos de Quadra' 
+
+              {/* TROCAR ROLE (PLAYER <-> COURTOWNER) */}
+              <TouchableOpacity style={styles.switchRoleButton} onPress={toggleUserRole}>
+                <Text
+                  style={[
+                    styles.switchRoleText,
+                    userRole === 'courtOwner' && courtOwnerStyles.switchRoleText
+                  ]}
+                >
+                  {userRole === 'player'
+                    ? 'Acesso para Donos de Quadra'
                     : 'Acesso para Jogadores'}
                 </Text>
               </TouchableOpacity>
@@ -369,7 +407,9 @@ const LoginScreen = ({ navigation, route }) => {
 
 export default LoginScreen;
 
-/* ===== Estilos Compartilhados ===== */
+/* ===================================
+   Estilos Compartilhados
+   =================================== */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   safeArea: { flex: 1 },
@@ -402,9 +442,17 @@ const styles = StyleSheet.create({
   inputIcon: { paddingHorizontal: 12 },
   input: { flex: 1, height: 55, fontSize: 16, color: '#333' },
   eyeIcon: { paddingHorizontal: 12 },
-  forgotPassword: { alignSelf: 'flex-end', marginTop: 6, marginBottom: 20 },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginTop: 6,
+    marginBottom: 20,
+  },
   forgotPasswordText: { color: '#37A0EC', fontSize: 14, fontWeight: '500' },
-  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
   divider: { flex: 1, height: 1, backgroundColor: '#E0E0E0' },
   dividerText: { paddingHorizontal: 15, color: '#888', fontSize: 14 },
   googleButton: {
@@ -418,14 +466,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   googleButtonText: { color: '#555', fontSize: 16, fontWeight: '500' },
-  registerContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 25 },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 25,
+  },
   registerText: { color: '#777', fontSize: 14 },
   registerLink: { color: '#37A0EC', fontSize: 14, fontWeight: '600' },
-  switchRoleButton: { alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#E0E0E0', marginTop: 5 },
-  switchRoleText: { color: '#37A0EC', fontSize: 15, fontWeight: '500' }
+  switchRoleButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    marginTop: 5,
+  },
+  switchRoleText: { color: '#37A0EC', fontSize: 15, fontWeight: '500' },
 });
 
-/* ===== Estilos Específicos para Jogador ===== */
+/* ===================================
+   Estilos Específicos para Jogador
+   =================================== */
 const playerStyles = StyleSheet.create({
   header: { height: 220 },
   headerGradient: {
@@ -469,49 +530,11 @@ const playerStyles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
   },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-    paddingLeft: 5,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E9F0',
-    borderRadius: 12,
-    backgroundColor: '#F8F8F8',
-  },
-  infoText: { fontSize: 12, color: '#777', marginTop: 5, paddingLeft: 5 },
-  registerButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 10,
-    marginBottom: 20,
-    shadowColor: '#FF7014',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  registerButtonGradient: {
-    height: 55,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  loginLink: { color: '#37A0EC', fontSize: 15, fontWeight: '600' },
-  switchRoleText: { color: '#37A0EC', fontSize: 15, fontWeight: '500' },
 });
 
-/* ===== Estilos Específicos para Dono de Quadra (Gestor) ===== */
+/* ===================================
+   Estilos Específicos para Dono de Quadra (Gestor)
+   =================================== */
 const courtOwnerStyles = StyleSheet.create({
   header: { height: 200 },
   headerGradient: {

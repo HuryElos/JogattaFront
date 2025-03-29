@@ -13,7 +13,8 @@ export default function QuadraDetailsScreen({ route }) {
   const fetchQuadra = async () => {
     try {
       // Supondo que a rota seja /api/superadmin/quadras/:id
-      const response = await api.get(`/api/superadmin/quadras/${quadraId}`);
+      const response = await api.get(`/api/quadras/${quadraId}`);
+
       setQuadra(response.data);
     } catch (error) {
       console.log('Erro ao buscar detalhes da quadra:', error.message);
