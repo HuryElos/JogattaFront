@@ -212,7 +212,7 @@ export default function AdminHomeScreen({ navigation }) {
           <View style={styles.companyInfo}>
             <Text style={styles.companyName}>{item.nome}</Text>
             <Text style={styles.companyStatus}>
-              {item.status === 'ativo' ? 'Ativo' : 'Pendente'}
+              {item.status === 'ativo' ? 'Ativo' : 'pendente'}
             </Text>
           </View>
         </View>

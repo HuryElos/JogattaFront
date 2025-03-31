@@ -198,38 +198,48 @@ export default function ManualJogoScreen({ route, navigation }) {
 
   // Copia a distribuição
   const handleCopyDistribution = async () => {
-    let text = '';
-    const teams = generateTeamsArray();
-    teams.forEach((team, idx) => {
-      text += `Time ${idx + 1} (${team.jogadores.length}/${capacityOf(idx)})\n`;
-      if (team.jogadores.length === 0) {
-        text += '  - (Nenhum jogador)\n';
-      } else {
-        team.jogadores.forEach((j) => {
-          const lev = playerIsSetter[j._internalId] ? ' [LEV]' : '';
-          const tempLabel = j.temporario ? ' (Jogador Temporário)' : '';
-          text += `  - ${j.nome}${lev}${tempLabel}\n`;
-        });
-      }
-      text += '\n';
-    });
-
-    const leftover = allPlayers.length % playersPerTeam;
-    if (leftover === 0) {
-      text += 'Observações:\n - Times completos.\n';
-    } else if (leftover <= 2) {
-      text += 'Observações:\n - 1 ou 2 jogadores em excesso => revezamento.\n';
-    } else {
-      text += `Observações:\n - Faltou ${playersPerTeam - leftover} para completar.\n`;
-    }
-
     try {
+      const teams = generateTeamsArray();
+  
+      let text = '';
+      teams.forEach((team, idx) => {
+        text += `*Time ${idx + 1}*:\n`;
+        team.jogadores.forEach((j) => {
+          let line = `- ${j.nome}`;
+          if (playerIsSetter[j._internalId]) {
+            line += ' - Levantador';
+          }
+          text += `${line}\n`;
+        });
+        text += '\n';
+      });
+  
+      // Verifica se todos jogadores foram atribuídos
+const allAssigned = allPlayers.every(p => playerAssignments[p._internalId] !== -1);
+
+// Verifica se todos os times estão completos
+const allFull = Array.from({ length: numTeams }).every((_, idx) => {
+  return countAssigned(idx, playerAssignments) === capacityOf(idx);
+});
+
+// Monta observações com base real
+text += 'Observações:\n';
+if (!allAssigned) {
+  text += '- Ainda há jogadores sem time.\n';
+} else if (allFull) {
+  text += '- Times completos.\n';
+} else {
+  text += '- Alguns times estão incompletos.\n';
+}
+
+  
       await Clipboard.setStringAsync(text);
       Alert.alert('Sucesso', 'Lista copiada para a área de transferência!');
-    } catch {
+    } catch (error) {
       Alert.alert('Erro', 'Não foi possível copiar o texto.');
     }
   };
+  
 
   // Verifica se time atual está cheio
   const currentTeamFull = isTeamFull(selectedTimeIndex, playerAssignments);

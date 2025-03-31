@@ -16,7 +16,8 @@ import {
   StatusBar,
   Dimensions,
   ScrollView,
-  Animated
+  Animated,
+  Button
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -24,7 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
 import AuthContext from '../contexts/AuthContext';
 import api from '../services/api';
-
+import NPSModal from '../components/NPSModal';
 const { width } = Dimensions.get('window');
 const brandColor = '#E0E0E0'; // cor principal
 const STATUS_COLORS = {
@@ -38,7 +39,13 @@ const STATUS_COLORS = {
 
 export default function HomeScreen({ navigation }) {
   const { user } = useContext(AuthContext);
-
+  const [modalVisible, setModalVisible] = useState(false);
+  const handleSubmit = (data) => {
+    console.log('NPS Score:', data.score);
+    console.log('Feedback:', data.feedback);
+    
+    // Aqui você pode enviar os dados para seu servidor
+  };
   const [salasAtivas, setSalasAtivas] = useState([]);
   const [loadingSalas, setLoadingSalas] = useState(false);
   const [salaId, setSalaId] = useState('');
@@ -97,7 +104,7 @@ export default function HomeScreen({ navigation }) {
         );
         const ordenadas = filtradas.sort((a, b) => {
           const dataA = moment(`${a.data_jogo}T${a.horario_inicio}`);
-          const dataB = moment(`${b.data_jogo}T${b.horario_inicio}`);
+const dataB = moment(`${b.data_jogo}T${b.horario_inicio}`);
           return dataA.diff(dataB);
         });
         setSalasAtivas(ordenadas);
@@ -118,6 +125,7 @@ export default function HomeScreen({ navigation }) {
     try {
       const uuid = salaId.trim();
       const response = await api.get(`/api/convites/${uuid}`);
+
       if (response.status === 200 && response.data.convite) {
         const convite = response.data.convite;
         const payload = {
@@ -205,7 +213,7 @@ export default function HomeScreen({ navigation }) {
     setShowFlowModal(false);
     setShowProcessedModal(false);
     setPastedText('');
-    // Aqui está o *pequeno ajuste* para mandar p/ a tela de definir tamanho, antes de ir para ManualJogoScreen
+    // Aqui está o pequeno ajuste para mandar p/ a tela de definir tamanho, antes de ir para ManualJogoScreen
     if (flowType === 'manual') {
       navigation.navigate('JogosFlow', {
         screen: 'DefineTeamSizeScreen',
@@ -222,7 +230,7 @@ export default function HomeScreen({ navigation }) {
   // Renderização de um Card de Partida
   const renderPartidaCard = (partida) => {
     const dataJogo = moment(`${partida.data_jogo}T${partida.horario_inicio}`);
-    const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
+const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
    
     return (
       <TouchableOpacity
@@ -336,17 +344,6 @@ export default function HomeScreen({ navigation }) {
             />
             <Text style={styles.actionText}>Equilibrar{'\n'}times</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-  style={styles.actionButton}
-  onPress={() => navigation.navigate('JogosFlow', { screen: 'Pagamento' })}
->
-  <Image
-    // source={require('../../assets/icons/payments.png')} // Pode ser qualquer ícone ou um texto temporário
-    style={{ width: 24, height: 24 }}
-  />
-  <Text style={styles.actionText}>Pagamento</Text>
-</TouchableOpacity>
-
         </View>
 
         {/* EXPLORAR QUADRAS */}
@@ -663,6 +660,17 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      <Button 
+        title="Abrir Pesquisa NPS" 
+        onPress={() => setModalVisible(true)} 
+      />
+      <NPSModal 
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSubmit={handleSubmit}
+      />
+      
     </SafeAreaView>
   );
 }

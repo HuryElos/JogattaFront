@@ -27,8 +27,8 @@ const EquilibrarTimesScreen = ({ navigation }) => {
 
     switch (selectedMode) {
       case 'manual':
-        // Pode ir direto para "DefineTeamSizeScreen"
-        navigation.navigate('DefineTeamSizeScreen', { fluxo: 'manual' });
+        
+        navigation.navigate('ConvidarAmigos', { fluxo: 'manual' });
         break;
       case 'habilidades':
         // Fluxo automático baseado em habilidades
