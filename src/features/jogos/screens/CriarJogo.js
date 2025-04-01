@@ -145,7 +145,8 @@ const CriarJogo = ({ navigation }) => {
     try {
       const response = await api.get('/api/empresas');
       if (response.status === 200) {
-        setEmpresas(response.data || []);
+        // Filtra apenas as empresas com status "ativo"
+        setEmpresas(response.data.filter(company => company.status === 'ativo') || []);
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível buscar as empresas.');

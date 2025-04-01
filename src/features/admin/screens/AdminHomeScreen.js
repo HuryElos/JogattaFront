@@ -29,6 +29,7 @@ export default function AdminHomeScreen({ navigation }) {
     totalEmpresas: 0,
     totalQuadras: 0,
     empresasAtivas: 0,
+    empresasPendentes: 0,
     empresasInativas: 0
   });
   const [refreshing, setRefreshing] = useState(false);
@@ -122,13 +123,16 @@ export default function AdminHomeScreen({ navigation }) {
     setLoading(true);
     try {
       const response = await api.get('/api/empresas');
-      setCompanies(response.data || []);
+      // Para o admin, queremos exibir todas as empresas (ativo, pendente, inativo)
+      const companiesData = response.data || [];
+      setCompanies(companiesData);
       
       setStats({
-        totalEmpresas: response.data.length,
-        totalQuadras: response.data.reduce((acc, company) => acc + (company.quadras?.length || 0), 0),
-        empresasAtivas: response.data.filter(company => company.status === 'ativo').length,
-        empresasInativas: response.data.filter(company => company.status === 'inativo').length
+        totalEmpresas: companiesData.length,
+        totalQuadras: companiesData.reduce((acc, company) => acc + (company.quadras?.length || 0), 0),
+        empresasAtivas: companiesData.filter(company => company.status === 'ativo').length,
+        empresasPendentes: companiesData.filter(company => company.status === 'pendente').length,
+        empresasInativas: companiesData.filter(company => company.status === 'inativo').length
       });
       hideUpdateButton();
     } catch (error) {
@@ -212,7 +216,11 @@ export default function AdminHomeScreen({ navigation }) {
           <View style={styles.companyInfo}>
             <Text style={styles.companyName}>{item.nome}</Text>
             <Text style={styles.companyStatus}>
-              {item.status === 'ativo' ? 'Ativo' : 'pendente'}
+              {item.status === 'ativo'
+                ? 'Ativo'
+                : item.status === 'pendente'
+                ? 'Pendente'
+                : 'Inativa'}
             </Text>
           </View>
         </View>
@@ -272,7 +280,7 @@ export default function AdminHomeScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-      {/* Notificação de Atualização (botão sutil) */}
+      {/* Notificação de Atualização */}
       {showNotification && (
         <Animated.View 
           style={[
@@ -328,7 +336,7 @@ export default function AdminHomeScreen({ navigation }) {
                 { scale: badgeAnim.interpolate({
                   inputRange: [0, 0.5, 1],
                   outputRange: [0.8, 1, 0.8]
-                })}
+                }) }
               ],
               opacity: badgeAnim
             }
@@ -358,6 +366,7 @@ export default function AdminHomeScreen({ navigation }) {
             {renderStatsCard('Total de Empresas', stats.totalEmpresas, 'office-building', '#4A90E2')}
             {renderStatsCard('Total de Quadras', stats.totalQuadras, 'soccer-field', '#2ECC71')}
             {renderStatsCard('Empresas Ativas', stats.empresasAtivas, 'check-circle', '#27AE60')}
+            {renderStatsCard('Empresas Pendentes', stats.empresasPendentes, 'clock-outline', '#FACC15')}
             {renderStatsCard('Empresas Inativas', stats.empresasInativas, 'close-circle', '#E74C3C')}
           </View>
         </View>
@@ -722,3 +731,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export { AdminHomeScreen };

@@ -1,5 +1,3 @@
-// src/screens/HomeScreen.js
-
 import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -7,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  ImageBackground,
   Alert,
   TextInput,
   ActivityIndicator,
@@ -19,15 +18,16 @@ import {
   Animated,
   Button
 } from 'react-native';
-
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
 import AuthContext from '../contexts/AuthContext';
 import api from '../services/api';
 import NPSModal from '../components/NPSModal';
+
 const { width } = Dimensions.get('window');
 const brandColor = '#E0E0E0'; // cor principal
+
 const STATUS_COLORS = {
   ativa: '#34D399',
   fechada: '#EF4444',
@@ -43,17 +43,17 @@ export default function HomeScreen({ navigation }) {
   const handleSubmit = (data) => {
     console.log('NPS Score:', data.score);
     console.log('Feedback:', data.feedback);
-    
-    // Aqui você pode enviar os dados para seu servidor
+    // Envie os dados para seu servidor
   };
+
   const [salasAtivas, setSalasAtivas] = useState([]);
   const [loadingSalas, setLoadingSalas] = useState(false);
   const [salaId, setSalaId] = useState('');
-  
-  // Adicionando estado para o modal de código
+
+  // Estado para o modal de código
   const [showEnterCodeModal, setShowEnterCodeModal] = useState(false);
 
-  // Estados para modais
+  // Estados para outros modais
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showFlowModal, setShowFlowModal] = useState(false);
   const [showProcessedModal, setShowProcessedModal] = useState(false);
@@ -76,7 +76,6 @@ export default function HomeScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       return () => {
-        // Limpa todos os estados quando a tela perde o foco
         setShowPasteModal(false);
         setShowFlowModal(false);
         setShowProcessedModal(false);
@@ -104,7 +103,7 @@ export default function HomeScreen({ navigation }) {
         );
         const ordenadas = filtradas.sort((a, b) => {
           const dataA = moment(`${a.data_jogo}T${a.horario_inicio}`);
-const dataB = moment(`${b.data_jogo}T${b.horario_inicio}`);
+          const dataB = moment(`${b.data_jogo}T${b.horario_inicio}`);
           return dataA.diff(dataB);
         });
         setSalasAtivas(ordenadas);
@@ -125,7 +124,6 @@ const dataB = moment(`${b.data_jogo}T${b.horario_inicio}`);
     try {
       const uuid = salaId.trim();
       const response = await api.get(`/api/convites/${uuid}`);
-
       if (response.status === 200 && response.data.convite) {
         const convite = response.data.convite;
         const payload = {
@@ -147,12 +145,11 @@ const dataB = moment(`${b.data_jogo}T${b.horario_inicio}`);
       Alert.alert('Erro', 'Não foi possível entrar na sala.');
       console.error('handleEnterSala:', error);
     }
-    // Limpar código e fechar modal após a tentativa
     setSalaId('');
     setShowEnterCodeModal(false);
   };
 
-  // Extração de nomes da lista com "✅"
+  // Função para extrair nomes da lista com "✅"
   const parsePlayerList = (text) => {
     const lines = text.split('\n');
     const players = [];
@@ -202,36 +199,30 @@ const dataB = moment(`${b.data_jogo}T${b.horario_inicio}`);
     setShowFlowModal(true);
   };
 
-  /**
-   * Se clicar em "Manual" ou "Automático" dentro do modal:
-   *   - Manual => queremos primeiro a tela de 'DefineTeamSizeScreen'
-   *   - Automático => segue direto pra 'JogoScreen'
-   */
   const handleSelectFlow = (flowType) => {
-    // Limpa os estados antes de navegar
-    setShowPasteModal(false);
     setShowFlowModal(false);
+    setShowPasteModal(false);
     setShowProcessedModal(false);
+    const players = tempPlayersData;
     setPastedText('');
-    // Aqui está o pequeno ajuste para mandar p/ a tela de definir tamanho, antes de ir para ManualJogoScreen
+    setTempPlayersData([]);
     if (flowType === 'manual') {
       navigation.navigate('JogosFlow', {
         screen: 'DefineTeamSizeScreen',
-        params: { players: tempPlayersData },
+        params: { players },
       });
     } else {
       navigation.navigate('JogosFlow', {
         screen: 'JogoScreen',
-        params: { tempPlayers: tempPlayersData, fluxo: 'automatico' },
+        params: { tempPlayers: players, fluxo: 'automatico' },
       });
     }
   };
-  // Criação do carrossel 
-  // Renderização de um Card de Partida
+
+  // Renderiza um card de partida
   const renderPartidaCard = (partida) => {
     const dataJogo = moment(`${partida.data_jogo}T${partida.horario_inicio}`);
-const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
-   
+    const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
     return (
       <TouchableOpacity
         key={partida.id_jogo}
@@ -241,9 +232,7 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
         <View style={styles.partidaIconContainer}>
           <MaterialCommunityIcons name="volleyball" size={24} color="#FF6B00" />
         </View>
-
         <Text style={styles.partidaTitle}>Partida {partida.id_jogo}</Text>
-
         <View style={styles.partidaInfo}>
           <MaterialCommunityIcons name="calendar" size={16} color="#666" />
           <Text style={styles.partidaText}>
@@ -267,7 +256,6 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
       <ScrollView style={styles.container}>
-       
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -290,9 +278,12 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
         </View>
 
         {/* BANNER */}
-        <View style={styles.bannerContainer}>
-          <Text style={styles.bannerText}>Alguma besteira falando sobre o app</Text>
-        </View>
+        <ImageBackground
+          source={require('../../assets/images/banners/partida.png')}
+          style={styles.bannerContainer}
+          imageStyle={styles.bannerImageStyle}
+          resizeMode="cover"
+        />
 
         {/* AÇÕES RÁPIDAS */}
         <View style={styles.quickActions}>
@@ -300,15 +291,12 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
             style={styles.actionButton}
             onPress={() => navigation.navigate('JogosFlow', { screen: 'CriarJogo' })}
           >
-            
             <Image
               source={require('../../assets/icons/add_circle.png')}
               style={{ width: 24, height: 24 }}
             />
             <Text style={styles.actionText}>Criar{'\n'}partida</Text>
-            
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setShowEnterCodeModal(true)}
@@ -319,7 +307,6 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
             />
             <Text style={styles.actionText}>Entrar na{'\n'}partida</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setShowPasteModal(true)}
@@ -330,13 +317,9 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
             />
             <Text style={styles.actionText}>Importar{'\n'}lista</Text>
           </TouchableOpacity>
-
-          {/* BOTÃO "EQUILIBRAR TIMES" */}
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('JogosFlow', {
-              screen: 'EquilibrarTimesScreen'
-            })}
+            onPress={() => navigation.navigate('JogosFlow', { screen: 'EquilibrarTimesScreen' })}
           >
             <Image
               source={require('../../assets/icons/groups_3.png')}
@@ -350,20 +333,15 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
         <Text style={styles.sectionTitle}>Explorar quadras</Text>
         <View style={styles.exploreContainer}>
           <View style={styles.exploreRow}>
-            {/* Card da esquerda: 2 partes (topo cinza + faixa laranja) */}
             <TouchableOpacity
               style={styles.leftCard}
               onPress={() => navigation.navigate('ExploreQuadras')}
             >
-              {/* Parte de cima (simula "mapa") */}
               <View style={styles.mapTop} />
-              {/* Parte de baixo (faixa laranja com texto) */}
               <View style={styles.mapBottom}>
                 <Text style={styles.mapBottomText}>Quadras perto de você</Text>
               </View>
             </TouchableOpacity>
-
-            {/* Coluna da direita: 2 cards cinza */}
             <View style={styles.rightColumn}>
               <TouchableOpacity style={styles.rightCard}>
                 <View style={styles.rightCardTop} />
@@ -384,20 +362,13 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
         {/* PRÓXIMAS PARTIDAS */}
         <View style={styles.nextMatchesHeader}>
           <Text style={styles.sectionTitle}>Próximas partidas</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Partidas')}>
-                <Text style={styles.seeAllText}>Ver todas</Text>
-              </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Partidas')}>
+            <Text style={styles.seeAllText}>Ver todas</Text>
+          </TouchableOpacity>
         </View>
         
-        <ScrollView  
-        horizontal={true}  
-        showsHorizontalScrollIndicator={false}
-        style={styles.partidasContainer}>
-       
-      
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.partidasContainer}>
           {salasAtivas.slice(0, 2).map(renderPartidaCard)}
- 
-
         </ScrollView>
       </ScrollView>
 
@@ -476,7 +447,6 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
                 <MaterialCommunityIcons name="close" size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
-
             <View style={styles.genderCountContainer}>
               <View style={styles.genderCountItem}>
                 <View style={[styles.genderBadge, { backgroundColor: '#4A90E2' }]}>
@@ -495,7 +465,6 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
                 <Text style={styles.genderCountText}>{tempPlayersData.length}</Text>
               </View>
             </View>
-
             <FlatList
               data={tempPlayersData}
               keyExtractor={(item, index) => index.toString()}
@@ -520,7 +489,7 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
                           item.genero === 'M' && styles.genderButtonTextSelected,
                         ]}
                       >
-                        
+                        {/* Se desejar, pode inserir um rótulo */}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -537,7 +506,7 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
                           item.genero === 'F' && styles.genderButtonTextSelected,
                         ]}
                       >
-                        
+                        {/* Rótulo, se necessário */}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -545,7 +514,6 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
               )}
               style={styles.playersList}
             />
-
             <TouchableOpacity
               style={[
                 styles.primaryButton,
@@ -661,6 +629,7 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
         </View>
       </Modal>
 
+      {/* Botão para abrir a pesquisa NPS (exemplo) */}
       <Button 
         title="Abrir Pesquisa NPS" 
         onPress={() => setModalVisible(true)} 
@@ -670,7 +639,6 @@ const horarioFim = moment(`${partida.data_jogo}T${partida.horario_fim}`);
         onClose={() => setModalVisible(false)}
         onSubmit={handleSubmit}
       />
-      
     </SafeAreaView>
   );
 }
@@ -724,21 +692,18 @@ const styles = StyleSheet.create({
 
   /* BANNER */
   bannerContainer: {
-    backgroundColor: '#D8D8D8',
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 20,
     borderRadius: 12,
-    minHeight: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    overflow: 'hidden',
+    height: 180, // ou 200, para ficar menor
   },
-  bannerText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
+  bannerImageStyle: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    // Valor negativo para subir a imagem e mostrar mais da parte de baixo
+    // transform: [{ translateY: 10 }],
   },
 
   /* AÇÕES RÁPIDAS */
@@ -758,7 +723,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 
-  /* Modal Entrar na partida*/
+  /* MODAL: ENTRAR NA PARTIDA */
   codeModalContent: {
     backgroundColor: '#FFF',
     borderTopLeftRadius: 24,
@@ -871,38 +836,25 @@ const styles = StyleSheet.create({
     color: 'black',
   },
   partidasContainer: {
-  
-    flexDirection: 'row',  
-    gap: 20,  
-    padding: 16, 
+    flexDirection: 'row',
     gap: 10,
-    marginHorizontal: 16,
-  },
-  
-  partidasContainer: {
-  
-    flexDirection: 'row',  
-    gap: 20,  
-    padding: 16, 
-    gap: 10,
+    padding: 16,
     marginHorizontal: 16,
   },
   partidaCard: {
-      backgroundColor: '#F8F8F8',
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
-      marginRight: 20,
-      gap: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 4, 
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    marginRight: 20,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  
   partidaIconContainer: {
-   
     backgroundColor: '#FFF',
     width: 40,
     height: 40,
@@ -925,22 +877,18 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   acessarButton: {
-    backgroundColor:  '#FF6B00',
+    backgroundColor: '#FF6B00',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
   },
   acessarButtonText: {
-    
     color: '#FFF',
     fontSize: 14,
     fontWeight: '500',
   },
 
-
-
-  
   /* MODAIS GERAIS */
   modalContainer: {
     flex: 1,

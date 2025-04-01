@@ -1,5 +1,3 @@
-// src/features/user/screens/ExploreQuadrasScreen.js
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -34,7 +32,8 @@ export default function ExploreQuadrasScreen({ navigation }) {
     setLoading(true);
     try {
       const response = await api.get('/api/empresas?includeQuadras=true');
-      setCompanies(response.data || []);
+      // Exibe apenas empresas ativas
+      setCompanies(response.data.filter(company => company.status === 'ativo') || []);
     } catch (error) {
       console.error('Erro ao buscar empresas:', error);
     } finally {
@@ -53,14 +52,12 @@ export default function ExploreQuadrasScreen({ navigation }) {
       activeOpacity={0.9}
     >
       {item.logo_url ? (
-        // Se existir logo_url, mostra a imagem
         <Image
           source={{ uri: item.logo_url }}
           style={styles.cardImage}
           resizeMode="cover"
         />
       ) : (
-        // Se não existir, mostra um gradiente com ícone
         <LinearGradient
           colors={['#FF7014', '#FF8A3D']}
           style={styles.placeholderImage}
@@ -241,13 +238,11 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 2,
   },
-  // Removemos o background preto/cinza do Image
   cardImage: {
     width: 55,
     height: 55,
     borderRadius: 12,
   },
-  // Caso não haja logo, usamos um gradiente com ícone
   placeholderImage: {
     width: 55,
     height: 55,
@@ -274,10 +269,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   activeBadge: {
-    backgroundColor: '#34D399', // verde
+    backgroundColor: '#34D399',
   },
   inactiveBadge: {
-    backgroundColor: '#9CA3AF', // cinza
+    backgroundColor: '#9CA3AF',
   },
   badgeText: {
     color: '#FFFFFF',
@@ -310,3 +305,5 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
+export { ExploreQuadrasScreen };
