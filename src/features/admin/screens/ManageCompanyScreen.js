@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useContext } from 'react';
 import {
+  Image,
   View,
   Text,
   StyleSheet,
@@ -12,7 +13,7 @@ import {
   Platform,
   StatusBar
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 import api from '../../../services/api';
@@ -28,12 +29,14 @@ export default function ManageCompanyScreen({ route, navigation }) {
   const [quadras, setQuadras] = useState([]);
   const [reservasPendentes, setReservasPendentes] = useState([]);
   const [companyData, setCompanyData] = useState(null);
-
   const [loading, setLoading] = useState(true);
   const [loadingReservas, setLoadingReservas] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(0);
 
+  // ----------------------------
+  // BUSCA DA EMPRESA
+  // ----------------------------
   useEffect(() => {
     const fetchCompanyData = async () => {
       try {
@@ -85,12 +88,15 @@ export default function ManageCompanyScreen({ route, navigation }) {
     } else {
       fetchEmpresaDoUsuario();
     }
-  }, []);
+  }, [company, route.params?.company]);
 
-  const empresaAtual = company || companyData;
+  const empresaAtual = companyData || company;
 
-  const fetchQuadrasDaEmpresa = async () => {
-    if (!empresaAtual) return;
+  // ----------------------------
+  // BUSCAR QUADRAS E RESERVAS
+  // ----------------------------
+  const fetchQuadrasDaEmpresa = useCallback(async () => {
+    if (!empresaAtual?.id_empresa) return;
     setLoading(true);
     try {
       const response = await api.get(`/api/empresas/${empresaAtual.id_empresa}/quadras`);
@@ -100,39 +106,49 @@ export default function ManageCompanyScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [empresaAtual?.id_empresa]);
 
-  const fetchReservasPendentes = async () => {
-    if (!empresaAtual) return;
+  const fetchReservasPendentes = useCallback(async () => {
+    if (!empresaAtual?.id_empresa) return;
     setLoadingReservas(true);
     try {
-      const response = await api.get(`/api/empresas/reservas/${empresaAtual.id_empresa}/reservas`, {
-        params: { status: 'pendente' }
-      });
+      const response = await api.get(
+        `/api/empresas/reservas/${empresaAtual.id_empresa}/reservas`,
+        { params: { status: 'pendente' } }
+      );
       setReservasPendentes(response.data || []);
     } catch {
       Alert.alert('Erro', 'Não foi possível buscar as reservas pendentes.');
     } finally {
       setLoadingReservas(false);
     }
-  };
+  }, [empresaAtual?.id_empresa]);
 
+  // ----------------------------
+  // REFRESH (pull-to-refresh)
+  // ----------------------------
   const onRefresh = useCallback(() => {
     if (!empresaAtual) return;
     setRefreshing(true);
-    Promise.all([
-      fetchQuadrasDaEmpresa(),
-      fetchReservasPendentes()
-    ]).finally(() => setRefreshing(false));
-  }, [empresaAtual]);
+    Promise.all([fetchQuadrasDaEmpresa(), fetchReservasPendentes()]).finally(() =>
+      setRefreshing(false)
+    );
+  }, [empresaAtual, fetchQuadrasDaEmpresa, fetchReservasPendentes]);
 
+  // ----------------------------
+  // CARREGAR DADOS QUANDO EMPRESA ESTÁ DISPONÍVEL
+  // ----------------------------
   useEffect(() => {
-    if (empresaAtual) {
-      fetchQuadrasDaEmpresa();
-      fetchReservasPendentes();
+    if (empresaAtual?.id_empresa) {
+      (async () => {
+        await Promise.allSettled([fetchQuadrasDaEmpresa(), fetchReservasPendentes()]);
+      })();
     }
-  }, [empresaAtual]);
+  }, [fetchQuadrasDaEmpresa, fetchReservasPendentes, empresaAtual?.id_empresa]);
 
+  // ----------------------------
+  // HANDLERS DE RESERVA
+  // ----------------------------
   const handleConfirmReserva = async (id_reserva, id_jogo) => {
     try {
       await api.put(`/api/jogador/reservas/${id_reserva}/status`, {
@@ -159,6 +175,9 @@ export default function ManageCompanyScreen({ route, navigation }) {
     }
   };
 
+  // ----------------------------
+  // TELAS DE LOADING OU EMPRESA NÃO ENCONTRADA
+  // ----------------------------
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -183,13 +202,14 @@ export default function ManageCompanyScreen({ route, navigation }) {
     );
   }
 
-  // Dados fixos para o layout
+  // ----------------------------
+  // DADOS FIXOS PARA EXEMPLO
+  // ----------------------------
   const todayString = '13 de maio';
   const reservasHoje = 10;
   const ocupacao = 25;
   const quadrasDisponiveis = 12;
 
-  // Dias
   const dias = [
     { dia: 'Sex', data: 13 },
     { dia: 'Sáb', data: 14 },
@@ -198,80 +218,106 @@ export default function ManageCompanyScreen({ route, navigation }) {
     { dia: 'Ter', data: 17 }
   ];
 
-  const renderReservaCard = ({ item, index }) => (
-    <View style={styles.reservaCard}>
-      <View style={styles.reservaCardTop}>
-        <View style={styles.reservaIcon}>
-          <Text style={styles.reservaIconText}>Q{index + 1}</Text>
-        </View>
-        <View style={styles.reservaMainContent}>
-          <Text style={styles.reservaTitulo}>{item.nome_jogo || 'Partida 1'}</Text>
-          <View style={styles.reservaOrganizadorRow}>
-            <MaterialCommunityIcons name="account" size={16} color="#666" />
-            <Text style={styles.reservaOrganizador}>
-              {item.organizador || 'Maria Burkhardt'}
-            </Text>
-          </View>
-          <View style={styles.reservaHorarioRow}>
-            <MaterialCommunityIcons name="clock-outline" size={16} color="#666" />
-            <Text style={styles.reservaHorario}>
-              {item.horario_inicio || '13:00'} - {item.horario_fim || '18:00'}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.reservaRightContent}>
-          <Text style={styles.reservaPreco}>R$ 200,00</Text>
-          <Text style={styles.reservaDia}>Hoje</Text>
-        </View>
-      </View>
-      <View style={styles.reservaActions}>
-        <TouchableOpacity
-          style={[styles.reservaActionButton, styles.recusarButton]}
-          onPress={() => handleRejectReserva(item.id_reserva, item.id_jogo)}
-        >
-          <Text style={styles.reservaActionButtonText}>Recusar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.reservaActionButton, styles.aceitarButton]}
-          onPress={() => handleConfirmReserva(item.id_reserva, item.id_jogo)}
-        >
-          <Text style={styles.reservaActionButtonText}>Aceitar</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  // ----------------------------
+  // RENDERIZAÇÃO DA RESERVA (CARD)
+  // ----------------------------
+  const renderReservaCard = (item, index) => {
+    // Converte o valor para número ou usa valor padrão
+    const valorReserva = item.valor && !isNaN(Number(item.valor))
+      ? Number(item.valor).toFixed(2).replace('.', ',')
+      : '200,00';
 
-  const renderQuadraCard = ({ item, index }) => (
-    <View style={styles.quadraCard}>
-      <View style={styles.quadraIcon}>
-        <Text style={styles.quadraIconText}>Q{index + 1}</Text>
+    return (
+      <View key={index} style={styles.reservaCardContainer}>
+        <View style={styles.reservaCardTop}>
+          <View style={styles.reservaIcon}>
+            <MaterialCommunityIcons name="soccer-field" size={24} color="#000" />
+          </View>
+          <View style={styles.reservaMainContent}>
+            <Text style={styles.reservaTitulo}>{item.nome_jogo || 'Partida 1'}</Text>
+            <View style={styles.inlineRow}>
+              <View style={styles.reservaOrganizadorRow}>
+                <Icon name="user" size={14} color="#666" />
+                <Text style={styles.reservaOrganizador}>
+                  {item.organizador || 'Organizador não informado'}
+                </Text>
+              </View>
+              <View style={styles.reservaHorarioRow}>
+                <Icon name="clock-o" size={14} color="#666" />
+                <Text style={styles.reservaHorario}>
+                  {item.horario_inicio && item.horario_fim
+                    ? `${item.horario_inicio} - ${item.horario_fim}`
+                    : '13:00 - 18:00'}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.reservaRightContent}>
+            <Text style={styles.reservaPreco}>R$ {valorReserva}</Text>
+            <Text style={styles.reservaDia}>Hoje</Text>
+          </View>
+        </View>
+        <View style={styles.reservaActions}>
+          <TouchableOpacity
+            style={[styles.reservaActionButton, styles.recusarButton]}
+            onPress={() => handleRejectReserva(item.id_reserva, item.id_jogo)}
+          >
+            <Text style={styles.reservaActionButtonText}>Recusar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.reservaActionButton, styles.aceitarButton]}
+            onPress={() => handleConfirmReserva(item.id_reserva, item.id_jogo)}
+          >
+            <Text style={styles.reservaActionButtonText}>Aceitar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <Text style={styles.quadraCardTitle}>{item.nome || `Quadra ${index + 1}`}</Text>
-      <Text style={styles.quadraCardInfo}>R$ {item.preco_hora || 200}/hora</Text>
-      <Text style={styles.quadraCardInfo}>
-        {item.capacidade ? `Até ${item.capacidade} pessoas` : 'N/A pessoas'}
-      </Text>
-      <Text style={styles.quadraCardInfo}>
-        Funcionamento: {item.hora_abertura || '13:00'} - {item.hora_fechamento || '18:00'}
-      </Text>
-      <Text style={styles.quadraCardInfo}>
-        {item.rede_disponivel && item.bola_disponivel
-          ? 'Rede e bola'
-          : item.rede_disponivel
-          ? 'Rede'
-          : item.bola_disponivel
-          ? 'Bola'
-          : 'Sem extras'}
-      </Text>
+    );
+  };
 
-      <TouchableOpacity
-        style={styles.editarQuadraButton}
-        onPress={() => navigation.navigate('GerenciarQuadra', { quadra: item })}
-      >
-        <Text style={styles.editarQuadraButtonText}>Editar quadra</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  // ----------------------------
+  // RENDERIZAÇÃO DE CADA QUADRA (CARD)
+  // ----------------------------
+  const renderQuadraCard = (quadra, index) => {
+    // Converte o preço por hora para número ou usa padrão
+    const precoHora = quadra.preco_hora && !isNaN(Number(quadra.preco_hora))
+      ? Number(quadra.preco_hora).toFixed(2).replace('.', ',')
+      : '20,00';
+
+    return (
+      <View key={index} style={styles.quadraCard}>
+        <View style={styles.quadraHeader}>
+          <MaterialCommunityIcons name="soccer-field" size={30} color="#000" />
+          <Text style={styles.quadraTag}>
+            {quadra.rede_disponivel && quadra.bola_disponivel
+              ? 'Rede e bola'
+              : quadra.rede_disponivel
+              ? 'Rede'
+              : quadra.bola_disponivel
+              ? 'Bola'
+              : 'Sem extras'}
+          </Text>
+        </View>
+        <Text style={styles.quadraTitulo}>{quadra.nome || `Quadra ${index + 1}`}</Text>
+        <View style={styles.quadraLinha} />
+        <Text style={styles.quadraInfo}>
+          • R$ {precoHora}/hora
+        </Text>
+        <Text style={styles.quadraInfo}>
+          • {quadra.capacidade ? `Até ${quadra.capacidade} pessoas` : 'Até 30 pessoas'}
+        </Text>
+        <Text style={styles.quadraInfo}>
+          Funcionamento: {quadra.hora_abertura || '13:00'} - {quadra.hora_fechamento || '18:00'}
+        </Text>
+        <TouchableOpacity
+          style={styles.editarQuadraButton}
+          onPress={() => navigation.navigate('GerenciarQuadra', { quadra })}
+        >
+          <Text style={styles.editarQuadraText}>Editar quadra</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -304,23 +350,13 @@ export default function ManageCompanyScreen({ route, navigation }) {
       <ScrollView
         style={styles.scrollArea}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#FF7014']}
-            tintColor="#FF7014"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF7014']} tintColor="#FF7014" />
         }
       >
         {/* Banner de pendência */}
         {empresaAtual.status === 'pendente' && (
           <View style={styles.pendingBanner}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={22}
-              color="#FFF"
-              style={{ marginRight: 10 }}
-            />
+            <MaterialCommunityIcons name="alert-circle-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
             <Text style={styles.pendingBannerText}>
               Sua empresa ainda está pendente de aprovação. Você pode cadastrar quadras, mas elas só estarão visíveis aos jogadores após aprovação.
             </Text>
@@ -335,123 +371,88 @@ export default function ManageCompanyScreen({ route, navigation }) {
               <Feather name="calendar" size={20} color="#000" />
             </TouchableOpacity>
           </View>
-
-          {/* Dias */}
           <View style={styles.diasContainer}>
             {dias.map((diaObj, index) => (
               <TouchableOpacity
                 key={index}
-                style={[
-                  styles.diaBox,
-                  selectedDate === index && styles.diaBoxSelected
-                ]}
+                style={[styles.diaBox, selectedDate === index && styles.diaBoxSelected]}
                 onPress={() => setSelectedDate(index)}
               >
-                <Text
-                  style={[
-                    styles.diaLabel,
-                    selectedDate === index && styles.diaLabelSelected
-                  ]}
-                >
+                <Text style={[styles.diaLabel, selectedDate === index && styles.diaLabelSelected]}>
                   {diaObj.dia}
                 </Text>
-                <Text
-                  style={[
-                    styles.diaData,
-                    selectedDate === index && styles.diaDataSelected
-                  ]}
-                >
+                <Text style={[styles.diaData, selectedDate === index && styles.diaDataSelected]}>
                   {diaObj.data}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-
-          {/* Estatísticas */}
           <View style={styles.statsContainer}>
             <View style={[styles.statCard, styles.statCardLarge]}>
               <Text style={styles.statValue}>{reservasHoje}</Text>
               <Text style={styles.statLabel}>Reservas hoje</Text>
             </View>
-
             <View style={styles.statsColumnRight}>
               <View style={[styles.statCard, styles.statCardSmall]}>
                 <View style={styles.statCardInner}>
                   <Text style={styles.statValue}>{ocupacao}%</Text>
                   <Text style={styles.statLabel}>Ocupação</Text>
                 </View>
-                <TouchableOpacity>
-                  <MaterialCommunityIcons name="dots-vertical" size={20} color="#000" />
-                </TouchableOpacity>
+                <MaterialCommunityIcons name="chart-pie" size={20} color="#FFF" />
               </View>
               <View style={[styles.statCard, styles.statCardSmall]}>
                 <View style={styles.statCardInner}>
                   <Text style={styles.statValue}>{quadrasDisponiveis}</Text>
                   <Text style={styles.statLabel}>Quadras disponíveis</Text>
                 </View>
-                <View
-                  style={[
-                    styles.quadraIcon,
-                    { width: 22, height: 22, backgroundColor: '#DEDEDE', marginBottom: 0 }
-                  ]}
-                >
-                  <Text style={[styles.quadraIconText, { fontSize: 11 }]}>Q</Text>
-                </View>
+                <MaterialCommunityIcons name="soccer-field" size={20} color="#FFF" />
               </View>
             </View>
           </View>
         </View>
 
         {/* Solicitações de reserva */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Solicitações de reserva</Text>
-            <TouchableOpacity>
-              <Text style={styles.sectionLink}>Ver todas</Text>
-            </TouchableOpacity>
-          </View>
-
-          {loadingReservas ? (
-            <ActivityIndicator size="small" color="#FF7014" />
-          ) : reservasPendentes.length > 0 ? (
-            reservasPendentes.map((item, index) => (
-              <View key={index} style={{ marginBottom: 8 }}>
-                {renderReservaCard({ item, index })}
+        <View style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Solicitações de reserva</Text>
+                <TouchableOpacity>
+                  <Text style={styles.sectionLink}>Ver todas</Text>
+                </TouchableOpacity>
               </View>
-            ))
-          ) : (
-            <Text style={styles.noDataText}>Nenhuma reserva pendente.</Text>
-          )}
+              {loadingReservas ? (
+                <ActivityIndicator size="small" color="#FF7014" />
+              ) : reservasPendentes.length > 0 ? (
+                reservasPendentes.map((item, idx) => renderReservaCard(item, idx))
+              ) : (
+                <Text style={styles.noDataText}>
+                  {reservasPendentes === null ? 'Erro ao carregar' : 'Nenhuma reserva pendente'}
+                </Text>
+              )}
+            </View>
+          </ScrollView>
         </View>
 
         {/* Minhas quadras */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Minhas quadras</Text>
-            <TouchableOpacity
-              style={styles.novaQuadraButton}
-              onPress={() => navigation.navigate('CreateQuadra', { companyId: empresaAtual.id_empresa })}
-            >
-              <Text style={styles.novaQuadraButtonText}>+ Nova quadra</Text>
-            </TouchableOpacity>
-          </View>
-
-          {quadras.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 8 }}
-            >
-              {quadras.map((item, index) => (
-                <View key={index} style={{ marginRight: 16 }}>
-                  {renderQuadraCard({ item, index })}
-                </View>
-              ))}
-            </ScrollView>
-          ) : (
-            <Text style={styles.noDataText}>Nenhuma quadra cadastrada.</Text>
-          )}
+        <View style={styles.sectionMinhasQuadras}>
+          <Text style={styles.sectionTitle}>Minhas quadras</Text>
+          <TouchableOpacity
+            style={styles.novaQuadraButton}
+            onPress={() => navigation.navigate('CreateQuadra', { companyId: empresaAtual.id_empresa })}
+          >
+            <Text style={styles.novaQuadraText}>+ Nova quadra</Text>
+          </TouchableOpacity>
         </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          {quadras.length > 0 ? (
+            quadras.map((quadra, index) => renderQuadraCard(quadra, index))
+          ) : (
+            <View style={{ marginLeft: 20 }}>
+              <Text style={styles.noDataText}>Nenhuma quadra cadastrada.</Text>
+            </View>
+          )}
+        </ScrollView>
       </ScrollView>
     </View>
   );
@@ -489,7 +490,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '600'
   },
-
   // Header
   header: {
     flexDirection: 'row',
@@ -514,13 +514,11 @@ const styles = StyleSheet.create({
   headerIcon: {
     marginLeft: 16
   },
-
   // Área de scroll principal
   scrollArea: {
     flex: 1,
     backgroundColor: '#FFFFFF'
   },
-
   // Banner pendente
   pendingBanner: {
     flexDirection: 'row',
@@ -537,7 +535,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15
   },
-
   // Dashboard card
   dashboardCard: {
     marginHorizontal: 20,
@@ -545,7 +542,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     padding: 18,
     backgroundColor: '#FFE5D3',
-    borderRadius: 16
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6
   },
   dashboardCardHeader: {
     flexDirection: 'row',
@@ -557,7 +559,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333'
   },
-
   // Dias
   diasContainer: {
     flexDirection: 'row',
@@ -568,30 +569,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    marginHorizontal: 2,
-    borderRadius: 24,
+    paddingVertical: 25,
+    borderRadius: 30,
     backgroundColor: '#FFF'
   },
   diaBoxSelected: {
     backgroundColor: '#FF7014'
   },
   diaLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 20,
+    color: '#000',
     marginBottom: 2
   },
   diaLabelSelected: {
-    color: '#FFF'
+    color: 'black'
   },
   diaData: {
-    fontSize: 16,
+    fontSize: 25,
     fontWeight: 'bold'
   },
   diaDataSelected: {
-    color: '#FFF'
+    color: 'black'
   },
-
   // Estatísticas
   statsContainer: {
     flexDirection: 'row',
@@ -609,12 +608,14 @@ const styles = StyleSheet.create({
   },
   statCardLarge: {
     width: '48%',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   statCardSmall: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    paddingHorizontal: 16
   },
   statCardInner: {
     flex: 1
@@ -622,17 +623,17 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFF'
+    color: 'black',
+    marginBottom: 4
   },
   statLabel: {
     fontSize: 13,
-    color: '#FFF'
+    color: 'black',
+    opacity: 0.9
   },
-
   // Seções
   section: {
-    marginHorizontal: 20,
-    marginBottom: 24
+    marginBottom: 20
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -640,8 +641,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12
   },
+  sectionMinhasQuadras: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 20
+  },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#000'
   },
@@ -653,49 +661,45 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#718096'
   },
-
   // Reservas
-  reservaCard: {
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    overflow: 'hidden'
+  reservaCardContainer: {
+    backgroundColor: '#D9D9D9',
+    borderRadius: 15,
+    padding: 16,
+    marginBottom: 16
   },
   reservaCardTop: {
     flexDirection: 'row',
-    padding: 14,
+    alignItems: 'flex-start'
+  },
+  inlineRow: {
+    flexDirection: 'row',
     alignItems: 'center'
   },
   reservaIcon: {
-    width: 28,
-    height: 28,
-    backgroundColor: '#DEDEDE',
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12
+    backgroundColor: 'transparent'
   },
   reservaIconText: {
-    fontSize: 11,
-    fontWeight: 'bold'
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A'
   },
   reservaMainContent: {
     flex: 1
   },
   reservaTitulo: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#000'
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginTop: 30
   },
   reservaOrganizadorRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4
+    alignItems: 'center'
   },
   reservaOrganizador: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4
+    fontSize: 16,
+    color: '#4A4A4A'
   },
   reservaHorarioRow: {
     flexDirection: 'row',
@@ -703,96 +707,120 @@ const styles = StyleSheet.create({
   },
   reservaHorario: {
     fontSize: 14,
-    color: '#666',
-    marginLeft: 4
+    color: 'black',
+    fontWeight: '500'
   },
   reservaRightContent: {
-    alignItems: 'flex-end'
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 70
   },
   reservaPreco: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000'
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#1A1A1A',
+    backgroundColor: '#BEBEBE',
+    borderRadius: 15,
+    paddingVertical: 6,
+    paddingHorizontal: 12
   },
   reservaDia: {
     fontSize: 12,
-    color: '#FF7014',
-    marginTop: 3
+    color: '#4A4A4A',
+    fontWeight: '700',
+    backgroundColor: '#BEBEBE',
+    borderRadius: 15,
+    paddingVertical: 6,
+    paddingHorizontal: 12
   },
   reservaActions: {
     flexDirection: 'row',
-    height: 40
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'black',
+    paddingTop: 12
   },
   reservaActionButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center'
+    paddingVertical: 4,
+    paddingHorizontal: 30,
+    borderRadius: 15
   },
   recusarButton: {
-    backgroundColor: '#EF4444'
+    backgroundColor: '#D32F2F'
   },
   aceitarButton: {
-    backgroundColor: '#4CAF50'
+    backgroundColor: '#388E3C'
   },
   reservaActionButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 14
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF'
   },
-
   // Minhas quadras
   novaQuadraButton: {
-    flexDirection: 'row',
-    alignItems: 'center'
+    backgroundColor: '#EAEAEA',
+    padding: 8,
+    borderRadius: 10
   },
-  novaQuadraButtonText: {
-    fontSize: 15,
-    color: '#FF7014',
-    fontWeight: '500'
+  novaQuadraText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000'
+  },
+  horizontalScroll: {
+    paddingLeft: 20
   },
   quadraCard: {
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    padding: 16,
-    minWidth: 150,
-    maxWidth: width * 0.45,
-    marginVertical: 4
+    backgroundColor: '#C4C4C4',
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 10,
+    width: 190,
+    marginBottom: 30
+  },
+  quadraHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6
   },
   quadraIcon: {
-    width: 28,
-    height: 28,
-    backgroundColor: '#DEDEDE',
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8
+    width: 25,
+    height: 25
   },
-  quadraIconText: {
-    fontSize: 11,
+  quadraTag: {
+    fontSize: 12,
+    backgroundColor: '#EAEAEA',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    color: '#000'
+  },
+  quadraTitulo: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#000'
   },
-  quadraCardTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#000'
+  quadraLinha: {
+    height: 1,
+    backgroundColor: '#000',
+    marginVertical: 4
   },
-  quadraCardInfo: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4
+  quadraInfo: {
+    fontSize: 13,
+    color: '#333',
+    marginBottom: 2
   },
   editarQuadraButton: {
     marginTop: 10,
-    backgroundColor: '#DEDEDE',
-    padding: 10,
+    backgroundColor: '#D9D9D9',
+    paddingVertical: 6,
     alignItems: 'center',
-    borderRadius: 6
+    borderRadius: 4
   },
-  editarQuadraButtonText: {
+  editarQuadraText: {
     fontSize: 14,
-    color: '#666',
-    fontWeight: '600'
+    color: '#000',
+    fontWeight: 'bold'
   }
 });
