@@ -203,7 +203,7 @@ export default function AdminHomeScreen({ navigation }) {
   const renderCompanyCard = ({ item }) => (
     <TouchableOpacity
       style={styles.companyCard}
-      onPress={() => navigation.navigate('ManageCompany', { company: item })}
+      onPress={() => navigation.navigate('AdminCompanyDetails', { companyId: item.id_empresa })}
     >
       <LinearGradient
         colors={['#4A90E2', '#357ABD']}
@@ -717,7 +717,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
-  // Novo estilo para botão de aprovação
   approveButton: {
     marginTop: 12,
     backgroundColor: '#4CAF50',

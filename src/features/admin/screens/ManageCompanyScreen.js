@@ -11,7 +11,9 @@ import {
   Alert,
   Dimensions,
   Platform,
-  StatusBar
+  StatusBar,
+  Linking,
+  Button
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,9 +22,15 @@ import api from '../../../services/api';
 import CompanyContext from '../../../contexts/CompanyContext';
 import AuthContext from '../../../contexts/AuthContext';
 
+// Importação do hook de navegação
+import { useNavigation } from '@react-navigation/native';
+
 const { width } = Dimensions.get('window');
 
 export default function ManageCompanyScreen({ route, navigation }) {
+  // Utilizando o hook de navegação (pode ser o mesmo objeto recebido via props)
+  navigation = useNavigation();
+
   const { company, setCompany } = useContext(CompanyContext);
   const { logout } = useContext(AuthContext);
 
@@ -172,6 +180,32 @@ export default function ManageCompanyScreen({ route, navigation }) {
       fetchReservasPendentes();
     } catch {
       Alert.alert('Erro', 'Não foi possível rejeitar a reserva.');
+    }
+  };
+
+  // ----------------------------
+  // FUNÇÃO PARA ONBOARDING COM STRIPE
+  // ----------------------------
+  const [loadingStripe, setLoadingStripe] = useState(false);
+
+  const handleOnboardingStripe = async () => {
+    setLoadingStripe(true);
+    try {
+      const response = await api.post('/api/connect/create-account-link', {
+        id_empresa: empresaAtual.id_empresa
+      });
+  
+      const { url } = response.data;
+      if (url) {
+        Linking.openURL(url);
+      } else {
+        Alert.alert('Erro', 'Link de onboarding não retornado pelo servidor.');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erro', 'Não foi possível iniciar o onboarding com o Stripe.');
+    } finally {
+      setLoadingStripe(false);
     }
   };
 
@@ -353,6 +387,14 @@ export default function ManageCompanyScreen({ route, navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF7014']} tintColor="#FF7014" />
         }
       >
+        {/* Botão para Configurar Conta para Receber Pagamentos */}
+        <View style={{ margin: 20 }}>
+          <Button
+            title="Configurar Conta para Receber Pagamentos"
+            onPress={() => navigation.navigate('OnboardingNavigator')}
+          />
+        </View>
+
         {/* Banner de pendência */}
         {empresaAtual.status === 'pendente' && (
           <View style={styles.pendingBanner}>
@@ -361,6 +403,23 @@ export default function ManageCompanyScreen({ route, navigation }) {
               Sua empresa ainda está pendente de aprovação. Você pode cadastrar quadras, mas elas só estarão visíveis aos jogadores após aprovação.
             </Text>
           </View>
+        )}
+
+        {/* Botão de onboarding com Stripe (visível se stripe_onboarding_completo for false) */}
+        {empresaAtual.stripe_onboarding_completo === false && (
+          <TouchableOpacity
+            style={styles.stripeButton}
+            onPress={handleOnboardingStripe}
+            disabled={loadingStripe}
+          >
+            {loadingStripe ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.stripeButtonText}>
+                Finalizar cadastro com Stripe
+              </Text>
+            )}
+          </TouchableOpacity>
         )}
 
         {/* DASHBOARD CARD */}
@@ -459,7 +518,6 @@ export default function ManageCompanyScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // Container principal
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF'
@@ -490,7 +548,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '600'
   },
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -514,12 +571,10 @@ const styles = StyleSheet.create({
   headerIcon: {
     marginLeft: 16
   },
-  // Área de scroll principal
   scrollArea: {
     flex: 1,
     backgroundColor: '#FFFFFF'
   },
-  // Banner pendente
   pendingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -535,7 +590,19 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15
   },
-  // Dashboard card
+  stripeButton: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: '#6772e5',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center'
+  },
+  stripeButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16
+  },
   dashboardCard: {
     marginHorizontal: 20,
     marginTop: 20,
@@ -559,7 +626,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333'
   },
-  // Dias
   diasContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -591,7 +657,6 @@ const styles = StyleSheet.create({
   diaDataSelected: {
     color: 'black'
   },
-  // Estatísticas
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between'
@@ -631,7 +696,6 @@ const styles = StyleSheet.create({
     color: 'black',
     opacity: 0.9
   },
-  // Seções
   section: {
     marginBottom: 20
   },
@@ -661,7 +725,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#718096'
   },
-  // Reservas
   reservaCardContainer: {
     backgroundColor: '#D9D9D9',
     borderRadius: 15,
@@ -756,7 +819,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFF'
   },
-  // Minhas quadras
   novaQuadraButton: {
     backgroundColor: '#EAEAEA',
     padding: 8,

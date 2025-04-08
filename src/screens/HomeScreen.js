@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useContext, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,12 @@ import {
   ImageBackground,
   Alert,
   TextInput,
-  ActivityIndicator,
   FlatList,
   Modal,
   SafeAreaView,
   StatusBar,
   Dimensions,
   ScrollView,
-  Animated,
   Button
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -402,7 +400,17 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>
-              Cole a lista de jogadores com confirmação (✅)
+              Cole sua lista de jogadores confirmados:
+            </Text>
+            <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 8 }}>
+              👋 Siga estes passos para importar a lista:
+              {'\n\n'}- Copie a lista de nomes dos jogadores confirmados do grupo do WhatsApp.
+              {'\n'}- Certifique-se de que cada nome esteja com "✅".
+              {'\n\n'}Exemplo:
+              {'\n'}João ✅
+              {'\n'}Maria ✅
+              {'\n'}Bruno ✅
+              {'\n\n'}Após colar a lista no campo abaixo, toque em "Processar Lista" para identificarmos os nomes e organizarmos os times!
             </Text>
             <TextInput
               style={styles.textArea}
