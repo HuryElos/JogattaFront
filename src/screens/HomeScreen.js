@@ -403,15 +403,10 @@ export default function HomeScreen({ navigation }) {
               Cole sua lista de jogadores confirmados:
             </Text>
             <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 8 }}>
-              👋 Siga estes passos para importar a lista:
-              {'\n\n'}- Copie a lista de nomes dos jogadores confirmados do grupo do WhatsApp.
-              {'\n'}- Certifique-se de que cada nome esteja com "✅".
-              {'\n\n'}Exemplo:
-              {'\n'}João ✅
-              {'\n'}Maria ✅
-              {'\n'}Bruno ✅
-              {'\n\n'}Após colar a lista no campo abaixo, toque em "Processar Lista" para identificarmos os nomes e organizarmos os times!
-            </Text>
+  👋 Copie os nomes com "✅" do grupo e cole aqui.  
+  {'\n'}Ex: {'\n'}João ✅ {'\n'}Maria ✅  
+  {'\n\n'}Toque em "Processar Lista" e pronto!
+</Text>
             <TextInput
               style={styles.textArea}
               multiline

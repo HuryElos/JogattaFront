@@ -21,15 +21,13 @@ import jwtDecode from 'jwt-decode';
 import api from '../../../services/api';
 import CompanyContext from '../../../contexts/CompanyContext';
 import AuthContext from '../../../contexts/AuthContext';
-
-// Importação do hook de navegação
 import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
-export default function ManageCompanyScreen({ route, navigation }) {
-  // Utilizando o hook de navegação (pode ser o mesmo objeto recebido via props)
-  navigation = useNavigation();
+export default function ManageCompanyScreen({ route, navigation: navFromProps }) {
+  // Utilizando o hook de navegação (o mesmo objeto pode ser utilizado recebido via props)
+  const navigation = useNavigation();
 
   const { company, setCompany } = useContext(CompanyContext);
   const { logout } = useContext(AuthContext);
@@ -41,6 +39,7 @@ export default function ManageCompanyScreen({ route, navigation }) {
   const [loadingReservas, setLoadingReservas] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(0);
+  const [loadingStripe, setLoadingStripe] = useState(false);
 
   // ----------------------------
   // BUSCA DA EMPRESA
@@ -186,15 +185,12 @@ export default function ManageCompanyScreen({ route, navigation }) {
   // ----------------------------
   // FUNÇÃO PARA ONBOARDING COM STRIPE
   // ----------------------------
-  const [loadingStripe, setLoadingStripe] = useState(false);
-
   const handleOnboardingStripe = async () => {
     setLoadingStripe(true);
     try {
       const response = await api.post('/api/connect/create-account-link', {
         id_empresa: empresaAtual.id_empresa
       });
-  
       const { url } = response.data;
       if (url) {
         Linking.openURL(url);
@@ -237,26 +233,28 @@ export default function ManageCompanyScreen({ route, navigation }) {
   }
 
   // ----------------------------
-  // DADOS FIXOS PARA EXEMPLO
+  // Geração dinâmica dos dias e todayString
   // ----------------------------
-  const todayString = '13 de maio';
-  const reservasHoje = 10;
-  const ocupacao = 25;
-  const quadrasDisponiveis = 12;
+  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const dias = Array.from({ length: 5 }, (_, i) => {
+    const data = new Date();
+    data.setDate(data.getDate() + i);
+    return {
+      dia: diasSemana[data.getDay()],
+      data: data.getDate()
+    };
+  });
 
-  const dias = [
-    { dia: 'Sex', data: 13 },
-    { dia: 'Sáb', data: 14 },
-    { dia: 'Dom', data: 15 },
-    { dia: 'Seg', data: 16 },
-    { dia: 'Ter', data: 17 }
-  ];
+  const today = new Date();
+  const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+  const todayString = `${today.getDate()} de ${capitalize(
+    today.toLocaleDateString('pt-BR', { month: 'long' })
+  )}`;
 
   // ----------------------------
   // RENDERIZAÇÃO DA RESERVA (CARD)
   // ----------------------------
   const renderReservaCard = (item, index) => {
-    // Converte o valor para número ou usa valor padrão
     const valorReserva = item.valor && !isNaN(Number(item.valor))
       ? Number(item.valor).toFixed(2).replace('.', ',')
       : '200,00';
@@ -268,7 +266,9 @@ export default function ManageCompanyScreen({ route, navigation }) {
             <MaterialCommunityIcons name="soccer-field" size={24} color="#000" />
           </View>
           <View style={styles.reservaMainContent}>
-            <Text style={styles.reservaTitulo}>{item.nome_jogo || 'Partida 1'}</Text>
+            <Text style={styles.reservaTitulo}>
+              {item.nome_jogo || 'Partida 1'}
+            </Text>
             <View style={styles.inlineRow}>
               <View style={styles.reservaOrganizadorRow}>
                 <Icon name="user" size={14} color="#666" />
@@ -313,7 +313,6 @@ export default function ManageCompanyScreen({ route, navigation }) {
   // RENDERIZAÇÃO DE CADA QUADRA (CARD)
   // ----------------------------
   const renderQuadraCard = (quadra, index) => {
-    // Converte o preço por hora para número ou usa padrão
     const precoHora = quadra.preco_hora && !isNaN(Number(quadra.preco_hora))
       ? Number(quadra.preco_hora).toFixed(2).replace('.', ',')
       : '20,00';
@@ -321,7 +320,7 @@ export default function ManageCompanyScreen({ route, navigation }) {
     return (
       <View key={index} style={styles.quadraCard}>
         <View style={styles.quadraHeader}>
-          <MaterialCommunityIcons name="soccer-field" size={30} color="#000" />
+          <MaterialCommunityIcons name="soccer-field" size={35} color="#000" />
           <Text style={styles.quadraTag}>
             {quadra.rede_disponivel && quadra.bola_disponivel
               ? 'Rede e bola'
@@ -405,7 +404,7 @@ export default function ManageCompanyScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Botão de onboarding com Stripe (visível se stripe_onboarding_completo for false) */}
+        {/* Botão de onboarding com Stripe */}
         {empresaAtual.stripe_onboarding_completo === false && (
           <TouchableOpacity
             style={styles.stripeButton}
@@ -415,9 +414,7 @@ export default function ManageCompanyScreen({ route, navigation }) {
             {loadingStripe ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.stripeButtonText}>
-                Finalizar cadastro com Stripe
-              </Text>
+              <Text style={styles.stripeButtonText}>Finalizar cadastro com Stripe</Text>
             )}
           </TouchableOpacity>
         )}
@@ -448,20 +445,20 @@ export default function ManageCompanyScreen({ route, navigation }) {
           </View>
           <View style={styles.statsContainer}>
             <View style={[styles.statCard, styles.statCardLarge]}>
-              <Text style={styles.statValue}>{reservasHoje}</Text>
+              <Text style={styles.statValue}>{reservasPendentes.length}</Text>
               <Text style={styles.statLabel}>Reservas hoje</Text>
             </View>
             <View style={styles.statsColumnRight}>
               <View style={[styles.statCard, styles.statCardSmall]}>
                 <View style={styles.statCardInner}>
-                  <Text style={styles.statValue}>{ocupacao}%</Text>
+                  <Text style={styles.statValue}>25%</Text>
                   <Text style={styles.statLabel}>Ocupação</Text>
                 </View>
                 <MaterialCommunityIcons name="chart-pie" size={20} color="#FFF" />
               </View>
               <View style={[styles.statCard, styles.statCardSmall]}>
                 <View style={styles.statCardInner}>
-                  <Text style={styles.statValue}>{quadrasDisponiveis}</Text>
+                  <Text style={styles.statValue}>12</Text>
                   <Text style={styles.statLabel}>Quadras disponíveis</Text>
                 </View>
                 <MaterialCommunityIcons name="soccer-field" size={20} color="#FFF" />
@@ -518,6 +515,7 @@ export default function ManageCompanyScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // Container principal
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF'
@@ -548,6 +546,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '600'
   },
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -571,10 +570,12 @@ const styles = StyleSheet.create({
   headerIcon: {
     marginLeft: 16
   },
+  // Área de scroll principal
   scrollArea: {
     flex: 1,
     backgroundColor: '#FFFFFF'
   },
+  // Banner pendente
   pendingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -590,10 +591,11 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15
   },
+  // Botão do Stripe (onboarding)
   stripeButton: {
     marginHorizontal: 20,
     marginBottom: 16,
-    backgroundColor: '#6772e5',
+    backgroundColor: '#FF7014',
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center'
@@ -603,6 +605,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16
   },
+  // Dashboard card
   dashboardCard: {
     marginHorizontal: 20,
     marginTop: 20,
@@ -626,37 +629,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333'
   },
+  // Dias
   diasContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 10,
     marginBottom: 18
   },
   diaBox: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 25,
-    borderRadius: 30,
+    paddingVertical: 15,
+    borderRadius: 50,
     backgroundColor: '#FFF'
   },
   diaBoxSelected: {
     backgroundColor: '#FF7014'
   },
   diaLabel: {
-    fontSize: 20,
+    fontSize: 15,
     color: '#000',
     marginBottom: 2
   },
   diaLabelSelected: {
-    color: 'black'
-  },
-  diaData: {
-    fontSize: 25,
+    fontSize: 18,
+    color: 'black',
     fontWeight: 'bold'
   },
-  diaDataSelected: {
-    color: 'black'
+  diaData: {
+    fontSize: 20
   },
+  diaDataSelected: {
+    color: 'black',
+    fontSize: 22,
+    fontWeight: 'bold'
+  },
+  // Estatísticas
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between'
@@ -696,6 +705,7 @@ const styles = StyleSheet.create({
     color: 'black',
     opacity: 0.9
   },
+  // Seções
   section: {
     marginBottom: 20
   },
@@ -725,8 +735,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#718096'
   },
+  // Reservas
   reservaCardContainer: {
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FFE5D3',
     borderRadius: 15,
     padding: 16,
     marginBottom: 16
@@ -740,12 +751,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   reservaIcon: {
-    backgroundColor: 'transparent'
-  },
-  reservaIconText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A'
+    // Sem estilos adicionais para espelhar a versão original
   },
   reservaMainContent: {
     flex: 1
@@ -758,7 +764,8 @@ const styles = StyleSheet.create({
   },
   reservaOrganizadorRow: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: '5'
   },
   reservaOrganizador: {
     fontSize: 16,
@@ -766,32 +773,34 @@ const styles = StyleSheet.create({
   },
   reservaHorarioRow: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: '5'
   },
   reservaHorario: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: 'black',
     fontWeight: '500'
   },
   reservaRightContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 70
+    marginBottom: 70,
+    gap: '10'
   },
   reservaPreco: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#1A1A1A',
-    backgroundColor: '#BEBEBE',
+    color: 'white',
+    backgroundColor: '#FF7014',
     borderRadius: 15,
     paddingVertical: 6,
     paddingHorizontal: 12
   },
   reservaDia: {
     fontSize: 12,
-    color: '#4A4A4A',
+    color: 'white',
     fontWeight: '700',
-    backgroundColor: '#BEBEBE',
+    backgroundColor: '#FF7014',
     borderRadius: 15,
     paddingVertical: 6,
     paddingHorizontal: 12
@@ -801,7 +810,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderTopWidth: 1,
     borderTopColor: 'black',
-    paddingTop: 12
+    paddingTop: 12,
+    gap: '20'
   },
   reservaActionButton: {
     paddingVertical: 4,
@@ -819,6 +829,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFF'
   },
+  // Minhas quadras
   novaQuadraButton: {
     backgroundColor: '#EAEAEA',
     padding: 8,
@@ -833,12 +844,13 @@ const styles = StyleSheet.create({
     paddingLeft: 20
   },
   quadraCard: {
-    backgroundColor: '#C4C4C4',
+    backgroundColor: '#FFE5D3',
     borderRadius: 12,
     padding: 12,
-    marginRight: 10,
-    width: 190,
-    marginBottom: 30
+    width: 200,
+    height: 230,
+    marginBottom: 30,
+    marginRight: 20
   },
   quadraHeader: {
     flexDirection: 'row',
@@ -852,11 +864,11 @@ const styles = StyleSheet.create({
   },
   quadraTag: {
     fontSize: 12,
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#FF7014',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 10,
-    color: '#000'
+    color: 'white'
   },
   quadraTitulo: {
     fontSize: 16,
@@ -875,14 +887,14 @@ const styles = StyleSheet.create({
   },
   editarQuadraButton: {
     marginTop: 10,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#FF7014',
     paddingVertical: 6,
     alignItems: 'center',
     borderRadius: 4
   },
   editarQuadraText: {
     fontSize: 14,
-    color: '#000',
+    color: 'white',
     fontWeight: 'bold'
   }
 });
