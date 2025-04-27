@@ -25,6 +25,7 @@ export default function AdminCompanyDetailsScreen({ route, navigation }) {
     setLoading(true);
     try {
       const response = await api.get(`/api/empresas/${companyId}`);
+      console.log('Resposta da API (detalhes da empresa):', response.data);
       setCompanyData(response.data);
     } catch (error) {
       console.error('Erro ao buscar detalhes da empresa:', error?.response?.data || error.message);
@@ -41,7 +42,7 @@ export default function AdminCompanyDetailsScreen({ route, navigation }) {
   // Função para aprovar a empresa, se estiver pendente
   const handleApprove = async () => {
     try {
-      await api.post(`/api/admin/empresas/${companyId}/aprovar`);
+      await api.patch(`/api/empresas/${companyId}/aprovar`);
       Alert.alert('Sucesso', 'Empresa aprovada com sucesso!');
       fetchCompanyDetails();
       // Opcional: navigation.goBack();

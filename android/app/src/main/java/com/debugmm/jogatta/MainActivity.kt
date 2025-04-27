@@ -1,4 +1,4 @@
-package com.debugmm.volleyfrontend
+package com.debugmm.jogatta
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

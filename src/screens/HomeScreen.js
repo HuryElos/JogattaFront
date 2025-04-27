@@ -632,7 +632,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* Botão para abrir a pesquisa NPS (exemplo) */}
+      {/* Botão para abrir a pesquisa NPS (exemplo)
       <Button 
         title="Abrir Pesquisa NPS" 
         onPress={() => setModalVisible(true)} 
@@ -641,7 +641,7 @@ export default function HomeScreen({ navigation }) {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSubmit={handleSubmit}
-      />
+      /> */}
     </SafeAreaView>
   );
 }

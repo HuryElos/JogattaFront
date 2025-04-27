@@ -81,7 +81,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.debugmm.jogatta"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
