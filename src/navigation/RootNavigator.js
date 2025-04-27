@@ -2,15 +2,18 @@ import React, { useContext } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import AuthContext from '../contexts/AuthContext';
 
-// Importa os stacks existentes
+// Stacks existentes
 import AuthStackNavigator from './AuthStackNavigator';
 import AdminStackNavigator from './AdminStackNavigator';
 import AppNavigator from './AppNavigator';
 import GestorStackNavigator from './GestorStackNavigator';
 
-// Outras telas extras
+// Telas extras
 import InviteHandlerScreen from '../screens/InviteHandlerScreen';
 import ViewProfileScreen from '../features/perfil/screens/ViewProfileScreen';
+
+// ✅ Novo fluxo de onboarding
+import OnboardingNavigator from '../features/admin/onboarding/OnboardingNavigator';
 
 const Stack = createStackNavigator();
 
@@ -30,6 +33,7 @@ export default function RootNavigator() {
       ) : (
         <Stack.Screen name="MainApp" component={AppNavigator} />
       )}
+
       {/* Telas extras */}
       <Stack.Screen
         name="InviteHandler"
@@ -40,6 +44,13 @@ export default function RootNavigator() {
         name="ViewProfile"
         component={ViewProfileScreen}
         options={{ headerShown: true, title: 'Perfil' }}
+      />
+
+      {/* ✅ Fluxo de onboarding Stripe */}
+      <Stack.Screen
+        name="OnboardingFlow"
+        component={OnboardingNavigator}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useContext, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,12 @@ import {
   ImageBackground,
   Alert,
   TextInput,
-  ActivityIndicator,
   FlatList,
   Modal,
   SafeAreaView,
   StatusBar,
   Dimensions,
   ScrollView,
-  Animated,
   Button
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -402,8 +400,13 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>
-              Cole a lista de jogadores com confirmação (✅)
+              Cole sua lista de jogadores confirmados:
             </Text>
+            <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 8 }}>
+  👋 Copie os nomes com "✅" do grupo e cole aqui.  
+  {'\n'}Ex: {'\n'}João ✅ {'\n'}Maria ✅  
+  {'\n\n'}Toque em "Processar Lista" e pronto!
+</Text>
             <TextInput
               style={styles.textArea}
               multiline
@@ -629,7 +632,7 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* Botão para abrir a pesquisa NPS (exemplo) */}
+      {/* Botão para abrir a pesquisa NPS (exemplo)
       <Button 
         title="Abrir Pesquisa NPS" 
         onPress={() => setModalVisible(true)} 
@@ -638,7 +641,7 @@ export default function HomeScreen({ navigation }) {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSubmit={handleSubmit}
-      />
+      /> */}
     </SafeAreaView>
   );
 }

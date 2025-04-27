@@ -1,11 +1,9 @@
-// src/navigation/AppNavigator.js
-
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Dimensions, 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  Dimensions,
+  View,
+  Text,
+  StyleSheet,
   Platform,
   TouchableOpacity,
   Animated,
@@ -29,9 +27,13 @@ import PartidasStackNavigator from './PartidasStackNavigator'; // Nova navegaç�
 // Telas de Admin
 import CriarQuadraScreen from '../features/admin/screens/CriarQuadraScreen';
 import GerenciarQuadraScreen from '../features/quadras/screens/GerenciarQuadraScreen';
+import AdminCompanyDetailsScreen from '../features/admin/screens/AdminCompanyDetailsScreen';
 
 // Tela de explorar quadras (usuário comum)
 import ExploreQuadrasScreen from '../features/user/screens/ExploreQuadras';
+
+// Importação do OnboardingNavigator já pronto
+import OnboardingNavigator from '../features/admin/onboarding/OnboardingNavigator';
 
 // ---------------------------------------------------------------------
 // Stacks
@@ -55,10 +57,8 @@ function getLocalIcon(routeName) {
   }
 }
 
-/** 
+/**
  * Stack principal da Home (GeneralStackNavigator).
- * Importante: aqui adicionamos a rota "JogosFlow" -> JogosStackNavigator
- * para que o HomeScreen possa acessar usando navigation.navigate('JogosFlow').
  */
 function GeneralStackNavigator() {
   return (
@@ -96,6 +96,13 @@ function GeneralStackNavigator() {
         options={{ title: 'Gerenciar Quadra' }}
       />
 
+      {/* Onboarding */}
+      <Stack.Screen
+        name="OnboardingNavigator"
+        component={OnboardingNavigator}
+        options={{ headerShown: false }}
+      />
+
       {/* Empresa e Explorar Quadras */}
       <Stack.Screen
         name="CompanyDetails"
@@ -106,6 +113,13 @@ function GeneralStackNavigator() {
         name="ExploreQuadras"
         component={ExploreQuadrasScreen}
         options={{ headerShown: false }}
+      />
+
+      {/* Tela de detalhes da empresa para admin */}
+      <Stack.Screen
+        name="AdminCompanyDetails"
+        component={AdminCompanyDetailsScreen}
+        options={{ title: 'Detalhes da Empresa' }}
       />
     </Stack.Navigator>
   );
@@ -170,7 +184,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
   return (
     <View style={styles.tabBarContainer}>
       {/* Bolinha animada */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.animatedBubbleContainer,
           {
@@ -202,7 +216,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
         const isFocused = state.index === index;
 
         const onPress = () => {
-          // Salva a posição deste item p/ mover a bolinha
           tabPositions[index] = tabWidth * index;
           const event = navigation.emit({
             type: 'tabPress',
@@ -221,7 +234,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
             onPress={onPress}
             onLayout={(event) => {
               const { x, width } = event.nativeEvent.layout;
-              // centraliza a bolinha no ícone
               tabPositions[index] = x + (width / 2) - (styles.specialTabButtonContainer.width / 2);
             }}
           >
@@ -245,9 +257,6 @@ function CustomTabBar({ state, descriptors, navigation }) {
   );
 }
 
-// ---------------------------------------------------------------------
-// Export principal: TAB NAVIGATOR
-// ---------------------------------------------------------------------
 export default function AppNavigator() {
   const [isLandscape, setIsLandscape] = useState(
     Dimensions.get('window').width > Dimensions.get('window').height
@@ -282,7 +291,7 @@ export default function AppNavigator() {
         options={{ title: 'Partidas' }}
       />
 
-      {/* ABA DE PLACAR (ou "Equilibrar Times") */}
+      {/* ABA DE PLACAR */}
       <Tab.Screen
         name="Placar"
         component={PlacarScreen}
@@ -299,9 +308,6 @@ export default function AppNavigator() {
   );
 }
 
-// ---------------------------------------------------------------------
-// Estilos
-// ---------------------------------------------------------------------
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
@@ -316,7 +322,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: Platform.OS === 'ios' ? 80 : 65,
     height: 75,
-    
   },
   tabItem: {
     flex: 1,
@@ -344,7 +349,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 1,
     marginTop: 5,
-  
   },
   specialTabButtonContainer: {
     width: 42,
@@ -352,7 +356,6 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     overflow: 'hidden',
     backgroundColor: '#ffffff',
-
   },
   specialTabButton: {
     width: '100%',

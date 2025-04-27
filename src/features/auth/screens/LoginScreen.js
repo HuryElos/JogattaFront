@@ -10,7 +10,8 @@ import {
   Platform,
   Dimensions,
   SafeAreaView,
-  Image
+  Image,
+  ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AuthContext from '../../../contexts/AuthContext';
@@ -72,7 +73,7 @@ const LoginScreen = ({ navigation, route }) => {
 
       // Verificar o papel do usuário a partir de múltiplas fontes
       const userPapel = user?.role || userDataObj?.papel_usuario;
-      // “mappedRole” existe se você estiver convertendo 'gestor' para 'courtOwner', etc. 
+      // "mappedRole" existe se você estiver convertendo 'gestor' para 'courtOwner', etc. 
       const mappedRole = user?.mappedRole || storedRole || 'player';
 
       if (userPapel === 'gestor' || mappedRole === 'courtOwner') {
@@ -155,7 +156,7 @@ const LoginScreen = ({ navigation, route }) => {
   };
 
   // --------------------------------------
-  // Troca entre “Jogador” e “Gestor”
+  // Troca entre "Jogador" e "Gestor"
   // --------------------------------------
   const toggleUserRole = () => {
     const newRole = userRole === 'player' ? 'courtOwner' : 'player';
@@ -247,158 +248,164 @@ const LoginScreen = ({ navigation, route }) => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
-          <View style={styles.formContainer}>
-            <View style={styles.formContent}>
-              {/* E-MAIL */}
-              <View style={styles.inputGroup}>
-                <Text
-                  style={[
-                    styles.inputLabel,
-                    userRole === 'courtOwner' && courtOwnerStyles.inputLabel
-                  ]}
-                >
-                  E-mail
-                </Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
-                  ]}
-                >
-                  <Ionicons
-                    name="mail-outline"
-                    size={20}
-                    color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Digite seu e-mail"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor="#999"
-                  />
-                </View>
-              </View>
-
-              {/* SENHA */}
-              <View style={styles.inputGroup}>
-                <Text
-                  style={[
-                    styles.inputLabel,
-                    userRole === 'courtOwner' && courtOwnerStyles.inputLabel
-                  ]}
-                >
-                  Senha
-                </Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
-                  ]}
-                >
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Digite sua senha"
-                    secureTextEntry={secureTextEntry}
-                    placeholderTextColor="#999"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setSecureTextEntry(!secureTextEntry)}
-                    style={styles.eyeIcon}
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.formContainer}>
+              <View style={styles.formContent}>
+                {/* E-MAIL */}
+                <View style={styles.inputGroup}>
+                  <Text
+                    style={[
+                      styles.inputLabel,
+                      userRole === 'courtOwner' && courtOwnerStyles.inputLabel
+                    ]}
+                  >
+                    E-mail
+                  </Text>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
+                    ]}
                   >
                     <Ionicons
-                      name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
-                      size={22}
+                      name="mail-outline"
+                      size={20}
                       color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
+                      style={styles.inputIcon}
                     />
-                  </TouchableOpacity>
+                    <TextInput
+                      style={styles.input}
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Digite seu e-mail"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholderTextColor="#999"
+                    />
+                  </View>
                 </View>
-              </View>
 
-              {/* Esqueceu a senha */}
-              <TouchableOpacity style={styles.forgotPassword}>
-                <Text
-                  style={[
-                    styles.forgotPasswordText,
-                    userRole === 'courtOwner' && courtOwnerStyles.forgotPasswordText
-                  ]}
-                >
-                  Esqueceu a senha?
-                </Text>
-              </TouchableOpacity>
+                {/* SENHA */}
+                <View style={styles.inputGroup}>
+                  <Text
+                    style={[
+                      styles.inputLabel,
+                      userRole === 'courtOwner' && courtOwnerStyles.inputLabel
+                    ]}
+                  >
+                    Senha
+                  </Text>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      userRole === 'courtOwner' && courtOwnerStyles.inputWrapper
+                    ]}
+                  >
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={20}
+                      color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
+                      style={styles.inputIcon}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Digite sua senha"
+                      secureTextEntry={secureTextEntry}
+                      placeholderTextColor="#999"
+                    />
+                    <TouchableOpacity
+                      onPress={() => setSecureTextEntry(!secureTextEntry)}
+                      style={styles.eyeIcon}
+                    >
+                      <Ionicons
+                        name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                        size={22}
+                        color={userRole === 'player' ? '#37A0EC' : '#2F5BA7'}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
-              {/* BOTÃO DE LOGIN */}
-              {userRole === 'player' ? <PlayerLoginButton /> : <CourtOwnerLoginButton />}
+                {/* Esqueceu a senha */}
+                <TouchableOpacity style={styles.forgotPassword}>
+                  <Text
+                    style={[
+                      styles.forgotPasswordText,
+                      userRole === 'courtOwner' && courtOwnerStyles.forgotPasswordText
+                    ]}
+                  >
+                    Esqueceu a senha?
+                  </Text>
+                </TouchableOpacity>
 
-              {/* DIVISOR */}
-              <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.dividerText}>ou</Text>
-                <View style={styles.divider} />
-              </View>
+                {/* BOTÃO DE LOGIN */}
+                {userRole === 'player' ? <PlayerLoginButton /> : <CourtOwnerLoginButton />}
 
-              {/* BOTÃO LOGIN GOOGLE */}
-              <TouchableOpacity
-                style={[
-                  styles.googleButton,
-                  userRole === 'courtOwner' && courtOwnerStyles.googleButton
-                ]}
-                onPress={() => promptAsync()}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.googleButtonText,
-                    userRole === 'courtOwner' && courtOwnerStyles.googleButtonText
-                  ]}
-                >
-                  <Text style={{ color: '#EA4335' }}>G</Text> Continuar com Google
-                </Text>
-              </TouchableOpacity>
+                {/* DIVISOR */}
+                <View style={styles.dividerContainer}>
+                  <View style={styles.divider} />
+                  <Text style={styles.dividerText}>ou</Text>
+                  <View style={styles.divider} />
+                </View>
 
-              {/* LINK REGISTER */}
-              <View style={styles.registerContainer}>
-                <Text style={styles.registerText}>Não tem uma conta? </Text>
+                {/* BOTÃO LOGIN GOOGLE */}
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('Register', { initialRole: userRole })}
+                  style={[
+                    styles.googleButton,
+                    userRole === 'courtOwner' && courtOwnerStyles.googleButton
+                  ]}
+                  onPress={() => promptAsync()}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
-                      styles.registerLink,
-                      userRole === 'courtOwner' && courtOwnerStyles.registerLink
+                      styles.googleButtonText,
+                      userRole === 'courtOwner' && courtOwnerStyles.googleButtonText
                     ]}
                   >
-                    Cadastre-se
+                    <Text style={{ color: '#EA4335' }}>G</Text> Continuar com Google
+                  </Text>
+                </TouchableOpacity>
+
+                {/* LINK REGISTER */}
+                <View style={styles.registerContainer}>
+                  <Text style={styles.registerText}>Não tem uma conta? </Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Register', { initialRole: userRole })}
+                  >
+                    <Text
+                      style={[
+                        styles.registerLink,
+                        userRole === 'courtOwner' && courtOwnerStyles.registerLink
+                      ]}
+                    >
+                      Cadastre-se
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* TROCAR ROLE (PLAYER <-> COURTOWNER) */}
+                <TouchableOpacity style={styles.switchRoleButton} onPress={toggleUserRole}>
+                  <Text
+                    style={[
+                      styles.switchRoleText,
+                      userRole === 'courtOwner' && courtOwnerStyles.switchRoleText
+                    ]}
+                  >
+                    {userRole === 'player'
+                      ? 'Acesso para Donos de Quadra'
+                      : 'Acesso para Jogadores'}
                   </Text>
                 </TouchableOpacity>
               </View>
-
-              {/* TROCAR ROLE (PLAYER <-> COURTOWNER) */}
-              <TouchableOpacity style={styles.switchRoleButton} onPress={toggleUserRole}>
-                <Text
-                  style={[
-                    styles.switchRoleText,
-                    userRole === 'courtOwner' && courtOwnerStyles.switchRoleText
-                  ]}
-                >
-                  {userRole === 'player'
-                    ? 'Acesso para Donos de Quadra'
-                    : 'Acesso para Jogadores'}
-                </Text>
-              </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
@@ -414,6 +421,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   safeArea: { flex: 1 },
   keyboardView: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+  },
   formContainer: {
     flex: 1,
     backgroundColor: '#FFF',

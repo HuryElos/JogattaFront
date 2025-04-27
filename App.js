@@ -8,6 +8,8 @@ import { LogBox, Text, View } from 'react-native'; // <-- adicionei Text/View pr
 import './src/config/intl';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { CompanyProvider } from './src/contexts/CompanyContext';
+import { OnboardingFormProvider } from './src/features/admin/onboarding/useOnboardingForm';
+
 
 LogBox.ignoreLogs([
   "The action 'RESET' with payload",
@@ -37,9 +39,11 @@ export default function App() {
       <AuthProvider>
         <PaperProvider>
           <StripeProvider publishableKey="pk_test_51N82cjDQ9JlHtXKK1xwPHGTbaa9IBeag6iImYX0R0Ce2GJOvRfSMSS2KzJII5xkZ1bavgWrmFrBjQ7TNDsiKvgOc0096dfHBBO">
-            <NavigationContainer>
-              <RootNavigator />
-            </NavigationContainer>
+            <OnboardingFormProvider>
+              <NavigationContainer>
+                <RootNavigator />
+              </NavigationContainer>
+            </OnboardingFormProvider>
           </StripeProvider>
         </PaperProvider>
       </AuthProvider>

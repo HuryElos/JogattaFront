@@ -11,7 +11,8 @@ import {
   Dimensions,
   Platform,
   Animated,
-  RefreshControl
+  RefreshControl,
+  TextInput
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,6 +35,8 @@ export default function AdminHomeScreen({ navigation }) {
   });
   const [refreshing, setRefreshing] = useState(false);
   const [showNewCompanyBadge, setShowNewCompanyBadge] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredCompanies, setFilteredCompanies] = useState([]);
 
   const { logout, user } = useContext(AuthContext);
   const notificationAnim = useRef(new Animated.Value(-100)).current;
@@ -188,6 +191,27 @@ export default function AdminHomeScreen({ navigation }) {
     }
   };
 
+  // Função para filtrar empresas
+  const filterCompanies = useCallback((companies, query) => {
+    if (!query) return companies;
+    
+    const lowerQuery = query.toLowerCase();
+    return companies.filter(company => {
+      return (
+        company.nome.toLowerCase().includes(lowerQuery) ||
+        company.status.toLowerCase().includes(lowerQuery) ||
+        company.endereco?.toLowerCase().includes(lowerQuery) ||
+        company.contato?.toLowerCase().includes(lowerQuery) ||
+        (company.quadras?.length || 0).toString().includes(lowerQuery)
+      );
+    });
+  }, []);
+
+  // Atualizar empresas filtradas quando mudar a lista ou a query
+  useEffect(() => {
+    setFilteredCompanies(filterCompanies(companies, searchQuery));
+  }, [companies, searchQuery, filterCompanies]);
+
   const renderStatsCard = (title, value, icon, color) => (
     <View style={[styles.statsCard, { backgroundColor: color }]}>
       <View style={styles.statsIconContainer}>
@@ -203,7 +227,7 @@ export default function AdminHomeScreen({ navigation }) {
   const renderCompanyCard = ({ item }) => (
     <TouchableOpacity
       style={styles.companyCard}
-      onPress={() => navigation.navigate('ManageCompany', { company: item })}
+      onPress={() => navigation.navigate('AdminCompanyDetails', { companyId: item.id_empresa })}
     >
       <LinearGradient
         colors={['#4A90E2', '#357ABD']}
@@ -279,6 +303,28 @@ export default function AdminHomeScreen({ navigation }) {
           </View>
         </View>
       </LinearGradient>
+
+      {/* Barra de Pesquisa */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Pesquisar empresas..."
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={() => setSearchQuery('')}
+            >
+              <Ionicons name="close-circle" size={20} color="#666" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
 
       {/* Notificação de Atualização */}
       {showNotification && (
@@ -363,11 +409,11 @@ export default function AdminHomeScreen({ navigation }) {
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>Visão Geral</Text>
           <View style={styles.statsGrid}>
-            {renderStatsCard('Total de Empresas', stats.totalEmpresas, 'office-building', '#4A90E2')}
-            {renderStatsCard('Total de Quadras', stats.totalQuadras, 'soccer-field', '#2ECC71')}
-            {renderStatsCard('Empresas Ativas', stats.empresasAtivas, 'check-circle', '#27AE60')}
-            {renderStatsCard('Empresas Pendentes', stats.empresasPendentes, 'clock-outline', '#FACC15')}
-            {renderStatsCard('Empresas Inativas', stats.empresasInativas, 'close-circle', '#E74C3C')}
+            {renderStatsCard('Total de Empresas', filteredCompanies.length, 'office-building', '#4A90E2')}
+            {renderStatsCard('Total de Quadras', filteredCompanies.reduce((acc, company) => acc + (company.quadras?.length || 0), 0), 'soccer-field', '#2ECC71')}
+            {renderStatsCard('Empresas Ativas', filteredCompanies.filter(company => company.status === 'ativo').length, 'check-circle', '#27AE60')}
+            {renderStatsCard('Empresas Pendentes', filteredCompanies.filter(company => company.status === 'pendente').length, 'clock-outline', '#FACC15')}
+            {renderStatsCard('Empresas Inativas', filteredCompanies.filter(company => company.status === 'inativo').length, 'close-circle', '#E74C3C')}
           </View>
         </View>
 
@@ -378,7 +424,7 @@ export default function AdminHomeScreen({ navigation }) {
             <ActivityIndicator size="large" color="#4A90E2" style={styles.loading} />
           ) : (
             <FlatList
-              data={companies}
+              data={filteredCompanies}
               keyExtractor={(item) => String(item.id_empresa)}
               renderItem={renderCompanyCard}
               scrollEnabled={false}
@@ -386,7 +432,9 @@ export default function AdminHomeScreen({ navigation }) {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <MaterialCommunityIcons name="office-building-off" size={48} color="#CCC" />
-                  <Text style={styles.emptyText}>Nenhuma empresa cadastrada</Text>
+                  <Text style={styles.emptyText}>
+                    {searchQuery ? 'Nenhuma empresa encontrada' : 'Nenhuma empresa cadastrada'}
+                  </Text>
                 </View>
               }
             />
@@ -717,7 +765,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
-  // Novo estilo para botão de aprovação
   approveButton: {
     marginTop: 12,
     backgroundColor: '#4CAF50',
@@ -729,6 +776,32 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  searchContainer: {
+    padding: 16,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    color: '#333',
+    fontSize: 14,
+  },
+  clearButton: {
+    padding: 4,
   },
 });
 
