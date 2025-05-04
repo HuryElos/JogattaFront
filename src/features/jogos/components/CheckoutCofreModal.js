@@ -1,6 +1,6 @@
 // src/features/jogos/components/CheckoutCofreModal.js
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PagamentoStripe from './PagamentoStripe';
+import api from '../../../services/api';
+import { setupPaymentSheet, showPaymentSheet } from '../../../services/stripe';
 
 export default function CheckoutCofreModal({
   visible,
@@ -22,11 +26,91 @@ export default function CheckoutCofreModal({
   id_usuario,
   quantidadeJogadores,
   onPaymentSuccess,
-  forcarAtualizacaoStatusJogador
+  forcarAtualizacaoStatusJogador,
+  registrarTransacao
 }) {
+  const [loading, setLoading] = useState(false);
+
   // amount já está em centavos
   const valorTotal = (amount / 100).toFixed(2); // Converter centavos para reais
   const valorPorJogador = (amount / quantidadeJogadores / 100).toFixed(2); // em reais
+
+  const handlePayment = async () => {
+    try {
+      setLoading(true);
+      
+      // 1. Criar PaymentIntent
+      const response = await api.post('/api/payments/create-payment-intent', {
+        amount,
+        currency: 'brl',
+        ownerId,
+        reservaId,
+        id_usuario
+      });
+
+      // const { client_secret, payment_intent_id } = response.data;
+      const client_secret = response.data.client_secret;
+      const payment_intent_id = response.data.payment_intent_id || response.data.paymentIntent?.id;
+
+      if (!payment_intent_id) {
+        console.error('❌ payment_intent_id ausente:', response.data);
+        Alert.alert('Erro', 'Não foi possível identificar o pagamento.');
+        return;
+      }
+
+      // 2. Registrar transação antes de mostrar o modal do Stripe
+      console.log('Dados da transação:', {
+        id_reserva: reservaId,
+        id_usuario,
+        stripe_payment_intent_id: payment_intent_id,
+        valor_total: amount,
+        valor_repasse: Math.floor(amount * 0.9),
+        taxa_jogatta: Math.floor(amount * 0.1)
+      });
+      await registrarTransacao({
+        id_reserva: reservaId,
+        id_usuario,
+        stripe_payment_intent_id: payment_intent_id,
+        valor_total: amount,
+        valor_repasse: Math.floor(amount * 0.9), // 90% do valor vai para o dono
+        taxa_jogatta: Math.floor(amount * 0.1) // 10% de taxa
+      });
+
+      // 3. Mostrar modal do Stripe
+      const { error } = await setupPaymentSheet({
+        paymentIntentClientSecret: client_secret,
+        merchantDisplayName: 'Jogatta',
+      });
+
+      if (error) {
+        console.error('Erro ao inicializar pagamento:', error);
+        Alert.alert('Erro', 'Não foi possível processar o pagamento.');
+        return;
+      }
+
+      const { error: presentError } = await showPaymentSheet();
+
+      if (presentError) {
+        console.error('Erro ao apresentar pagamento:', presentError);
+        Alert.alert('Erro', 'Pagamento cancelado ou falhou.');
+        return;
+      }
+
+      // 4. Pagamento bem sucedido
+      Alert.alert('Sucesso', 'Pagamento realizado com sucesso!');
+      
+      // 5. Atualizar status do jogador e cofre
+      await forcarAtualizacaoStatusJogador();
+      await onPaymentSuccess(amount / quantidadeJogadores);
+      
+      onClose();
+    } catch (error) {
+      console.error('Erro no processo de pagamento:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao processar o pagamento.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Modal
@@ -89,6 +173,21 @@ export default function CheckoutCofreModal({
             {/* Botão de "Fechar" extra (opcional) */}
             <TouchableOpacity onPress={onClose} style={styles.footerButton}>
               <Text style={styles.footerButtonText}>Fechar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.payButton, loading && styles.payButtonDisabled]}
+              onPress={handlePayment}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons name="card-outline" size={20} color="#FFF" />
+                  <Text style={styles.payButtonText}>Pagar R$ {valorPorJogador}</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -186,5 +285,21 @@ const styles = StyleSheet.create({
     color: '#FF6B00',
     fontWeight: '600',
     fontSize: 16
-  }
+  },
+  payButton: {
+    alignSelf: 'center',
+    marginTop: 12,
+    backgroundColor: '#FF6B00',
+    padding: 12,
+    borderRadius: 8,
+  },
+  payButtonDisabled: {
+    backgroundColor: '#E5E7EB',
+  },
+  payButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 16,
+    marginLeft: 8,
+  },
 });

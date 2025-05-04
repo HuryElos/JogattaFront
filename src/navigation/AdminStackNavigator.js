@@ -5,7 +5,8 @@ import CreateCompanyScreen from '../features/admin/screens/CreateCompanyScreen';
 import ManageCompanyScreen from '../features/admin/screens/ManageCompanyScreen';
 import CreateQuadraScreen from '../features/admin/screens/CriarQuadraScreen';
 import GerenciarQuadraScreen from '../features/quadras/screens/GerenciarQuadraScreen';
-import AdminCompanyDetailsScreen from '../features/admin/screens/AdminCompanyDetailsScreen'; // ✅ Novo import
+import AdminCompanyDetailsScreen from '../features/admin/screens/AdminCompanyDetailsScreen';
+import DetalhesFilaScreen from '../features/admin/screens/DetalhesFilaScreen';
 
 const Stack = createStackNavigator();
 
@@ -38,9 +39,14 @@ export default function AdminStackNavigator() {
         options={{ title: 'Gerenciar Quadra' }}
       />
       <Stack.Screen
-        name="AdminCompanyDetails" // ✅ Tela de detalhes da empresa
+        name="AdminCompanyDetails"
         component={AdminCompanyDetailsScreen}
         options={{ title: 'Detalhes da Empresa' }}
+      />
+      <Stack.Screen
+        name="DetalhesFila"
+        component={DetalhesFilaScreen}
+        options={{ title: 'Detalhes da Fila' }}
       />
     </Stack.Navigator>
   );

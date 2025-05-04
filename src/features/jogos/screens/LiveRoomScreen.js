@@ -48,6 +48,31 @@
     'cancelado': 'close',
   };
 
+  // Função para registrar transação
+  async function registrarTransacao({
+    id_reserva,
+    id_usuario,
+    payment_intent_id,
+    valor_total,
+    valor_repasse,
+    taxa_jogatta
+  }) {
+    try {
+      await api.post('/api/pagamento/criar-transacao', {
+        id_reserva,
+        id_usuario,
+        stripe_payment_intent_id: payment_intent_id,
+        valor_total,
+        valor_repasse,
+        taxa_jogatta
+      });
+      console.log('✅ Transação registrada com sucesso.');
+    } catch (error) {
+      console.error('❌ Erro ao registrar transação:', error.response?.data || error.message);
+      throw error; // Propaga o erro para ser tratado pelo chamador
+    }
+  }
+
   const LiveRoomScreen = () => {
     const route = useRoute();
     const navigation = useNavigation();
@@ -923,6 +948,7 @@
             quantidadeJogadores={gameDetails.limite_jogadores || confirmedPlayers.length}
             onPaymentSuccess={forcarAtualizacaoCofre}
             forcarAtualizacaoStatusJogador={forcarAtualizacaoStatusJogador}
+            registrarTransacao={registrarTransacao}
           />
 
         </ScrollView>
@@ -931,7 +957,6 @@
   };
 
   export default LiveRoomScreen;
-
   const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FFF' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' },
@@ -1216,3 +1241,4 @@
     emptyTitle: { fontSize: 16, fontWeight: '600', color: '#4B5563', marginTop: 12, marginBottom: 4 },
     emptySubtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center' },
   });
+

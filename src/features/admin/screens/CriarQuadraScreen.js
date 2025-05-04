@@ -24,6 +24,12 @@ export default function CriarQuadraScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
   const [capacidade, setCapacidade] = useState('');
 
+  // Novos estados para Regras de Reserva
+  const [prazo50Porcento, setPrazo50Porcento] = useState('');
+  const [prazo100Porcento, setPrazo100Porcento] = useState('');
+  const [cobrarMulta, setCobrarMulta] = useState(false);
+  const [valorMulta, setValorMulta] = useState('');
+
   // Novos campos para horário de funcionamento iniciados com null
   const [horaAbertura, setHoraAbertura] = useState(null);
   const [horaFechamento, setHoraFechamento] = useState(null);
@@ -83,6 +89,11 @@ export default function CriarQuadraScreen({ route, navigation }) {
         // Envia os horários no formato HH:MM
         hora_abertura: horaAbertura.toTimeString().slice(0, 5),
         hora_fechamento: horaFechamento.toTimeString().slice(0, 5),
+        // Novos campos de regras de reserva
+        prazo_50_porcento: prazo50Porcento,
+        prazo_100_porcento: prazo100Porcento,
+        cobrar_multa: cobrarMulta,
+        valor_multa: cobrarMulta ? valorMulta : null,
       };
 
       // Corrigido o endpoint para utilizar a rota de empresas/quadras
@@ -260,6 +271,83 @@ export default function CriarQuadraScreen({ route, navigation }) {
               thumbColor={bolaDisponivel ? '#27AE60' : '#f4f3f4'}
             />
           </View>
+        </View>
+
+        {/* Nova Seção de Regras de Reserva */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Regras de Reserva</Text>
+          
+          <View style={styles.inputContainer}>
+            <MaterialCommunityIcons name="clock-outline" size={20} color="#4A90E2" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Prazo para 50% (horas)"
+              value={prazo50Porcento}
+              onChangeText={setPrazo50Porcento}
+              keyboardType="numeric"
+            />
+            <TouchableOpacity 
+              style={styles.helpIcon}
+              onPress={() => Alert.alert(
+                'Prazo para 50%',
+                'Defina aqui o prazo (em horas) para que o organizador de um jogo garanta a pré-reserva pagando 50% do valor.\n\nEste prazo será contado apenas se houver outra pessoa na fila interessada na mesma quadra.'
+              )}
+            >
+              <MaterialCommunityIcons name="help-circle-outline" size={20} color="#4A90E2" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <MaterialCommunityIcons name="clock-outline" size={20} color="#4A90E2" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Prazo para 100% (horas)"
+              value={prazo100Porcento}
+              onChangeText={setPrazo100Porcento}
+              keyboardType="numeric"
+            />
+            <TouchableOpacity 
+              style={styles.helpIcon}
+              onPress={() => Alert.alert(
+                'Ajuda',
+                'Prazo para atingir o valor total necessário para confirmar a reserva.'
+              )}
+            >
+              <MaterialCommunityIcons name="help-circle-outline" size={20} color="#4A90E2" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.switchContainer}>
+            <Text style={styles.switchLabel}>Cobrar multa em caso de cancelamento?</Text>
+            <Switch
+              value={cobrarMulta}
+              onValueChange={setCobrarMulta}
+              trackColor={{ false: '#767577', true: '#2ECC71' }}
+              thumbColor={cobrarMulta ? '#27AE60' : '#f4f3f4'}
+            />
+          </View>
+
+          {cobrarMulta && (
+            <View style={styles.inputContainer}>
+              <MaterialCommunityIcons name="cash" size={20} color="#4A90E2" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Valor da multa (%)"
+                value={valorMulta}
+                onChangeText={setValorMulta}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity 
+                style={styles.helpIcon}
+                onPress={() => Alert.alert(
+                  'Ajuda',
+                  'Percentual do valor total que será cobrado em caso de cancelamento.'
+                )}
+              >
+                <MaterialCommunityIcons name="help-circle-outline" size={20} color="#4A90E2" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Seção de Observações */}
@@ -471,6 +559,10 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
+  },
+  helpIcon: {
+    padding: 8,
     marginLeft: 8,
   },
 });

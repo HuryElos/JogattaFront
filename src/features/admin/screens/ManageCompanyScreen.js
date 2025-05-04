@@ -12,8 +12,8 @@ import {
   Dimensions,
   Platform,
   StatusBar,
-  Linking,           // ⬅️ adicionado
-  Button             // ⬅️ adicionado
+  Linking,
+  Button
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather, FontAwesome as Icon } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,12 +30,13 @@ export default function ManageCompanyScreen({ route, navigation }) {
 
   const [quadras, setQuadras]               = useState([]);
   const [reservasPendentes, setReservasPendentes] = useState([]);
+  const [filaDeQuadras, setFilaDeQuadras]   = useState([]);
   const [companyData, setCompanyData]       = useState(null);
   const [loading, setLoading]               = useState(true);
   const [loadingReservas, setLoadingReservas]     = useState(false);
   const [refreshing, setRefreshing]         = useState(false);
   const [selectedDate, setSelectedDate]     = useState(0);
-  const [loadingStripe, setLoadingStripe]   = useState(false);  // ⬅️ adicionado
+  const [loadingStripe, setLoadingStripe]   = useState(false);
 
   /* ─────────────────────────────── BUSCA DA EMPRESA ─────────────────────────────── */
   useEffect(() => {
@@ -99,22 +100,61 @@ export default function ManageCompanyScreen({ route, navigation }) {
     }
   }, [empresaAtual?.id_empresa]);
 
+  const fetchFilaDeQuadras = useCallback(async () => {
+    if (!empresaAtual?.id_empresa) return;
+    try {
+      // Mock data para teste
+      const mockData = [
+        {
+          id_quadra: 1,
+          nome_quadra: "Quadra Principal",
+          qtd_pessoas: 3,
+          ultima_atualizacao: "2024-03-20T15:30:00"
+        },
+        {
+          id_quadra: 2,
+          nome_quadra: "Quadra VIP",
+          qtd_pessoas: 1,
+          ultima_atualizacao: "2024-03-20T16:00:00"
+        },
+        {
+          id_quadra: 3,
+          nome_quadra: "Quadra Social",
+          qtd_pessoas: 2,
+          ultima_atualizacao: "2024-03-20T14:45:00"
+        }
+      ];
+      
+      // Descomente quando a API estiver pronta
+      // const { data } = await api.get(`/api/empresas/${empresaAtual.id_empresa}/filas`);
+      // setFilaDeQuadras(data || []);
+      
+      setFilaDeQuadras(mockData);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível buscar as filas de espera.');
+    }
+  }, [empresaAtual?.id_empresa]);
+
   /* ─────────────────────────────── REFRESH ─────────────────────────────── */
   const onRefresh = useCallback(() => {
     if (!empresaAtual) return;
     setRefreshing(true);
-    Promise.all([fetchQuadrasDaEmpresa(), fetchReservasPendentes()]).finally(() =>
+    Promise.all([fetchQuadrasDaEmpresa(), fetchReservasPendentes(), fetchFilaDeQuadras()]).finally(() =>
       setRefreshing(false)
     );
-  }, [empresaAtual, fetchQuadrasDaEmpresa, fetchReservasPendentes]);
+  }, [empresaAtual, fetchQuadrasDaEmpresa, fetchReservasPendentes, fetchFilaDeQuadras]);
 
   useEffect(() => {
     if (empresaAtual?.id_empresa) {
       (async () => {
-        await Promise.allSettled([fetchQuadrasDaEmpresa(), fetchReservasPendentes()]);
+        await Promise.allSettled([
+          fetchQuadrasDaEmpresa(),
+          fetchReservasPendentes(),
+          fetchFilaDeQuadras()
+        ]);
       })();
     }
-  }, [fetchQuadrasDaEmpresa, fetchReservasPendentes, empresaAtual?.id_empresa]);
+  }, [fetchQuadrasDaEmpresa, fetchReservasPendentes, fetchFilaDeQuadras, empresaAtual?.id_empresa]);
 
   /* ─────────────────────────────── HANDLERS RESERVA ─────────────────────────────── */
   const handleConfirmReserva = async (id_reserva, id_jogo) => {
@@ -378,9 +418,14 @@ export default function ManageCompanyScreen({ route, navigation }) {
         <View style={styles.dashboardCard}>
           <View style={styles.dashboardCardHeader}>
             <Text style={styles.dashboardDate}>Hoje, {todayString}</Text>
-            <TouchableOpacity style={styles.calender}>
-              <Feather name="calendar" size={20} color="#000" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity style={styles.calender}>
+                <Feather name="calendar" size={20} color="#000" />
+              </TouchableOpacity>
+              <TouchableOpacity style={{ marginLeft: 10 }} onPress={() => navigation.navigate('DashboardGestor')}>
+                <Feather name="bar-chart-2" size={22} color="#000" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.diasContainer}>
@@ -440,6 +485,34 @@ export default function ManageCompanyScreen({ route, navigation }) {
                 reservasPendentes.map((r, idx) => renderReservaCard(r, idx))
               ) : (
                 <Text style={styles.noDataText}>Nenhuma reserva pendente</Text>
+              )}
+            </View>
+
+            {/* NOVA SEÇÃO DE DEMANDAS DE QUADRAS */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Demandas de Quadras</Text>
+              </View>
+              {filaDeQuadras.length ? (
+                filaDeQuadras.map((fila, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.filaCard}
+                    onPress={() => navigation.navigate('DetalhesFila', { quadra: fila })}
+                  >
+                    <View style={styles.filaInfo}>
+                      <Text style={styles.filaQuadraNome}>{fila.nome_quadra}</Text>
+                      <Text style={styles.filaQuantidade}>
+                        {fila.qtd_pessoas} pessoa(s) na fila
+                      </Text>
+                      <Text style={styles.filaUltimaAtualizacao}>
+                        Última atualização: {new Date(fila.ultima_atualizacao).toLocaleString('pt-BR')}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.noDataText}>Nenhuma demanda no momento.</Text>
               )}
             </View>
           </ScrollView>
@@ -573,5 +646,32 @@ const styles = StyleSheet.create({
   quadraInfoRow: { flexDirection: 'row', alignItems: 'center', marginVertical: -7 },
   quadraInfoText: { fontSize: 14.5, color: '#000', fontWeight: '500' },
   editarQuadraButton: { marginTop: 10, backgroundColor: '#D9D9D9', paddingVertical: 6, alignItems: 'center', borderRadius: 14 },
-  editarQuadraText: { fontSize: 14, color: 'black' }
+  editarQuadraText: { fontSize: 14, color: 'black' },
+
+  /* ---- Filas ---- */
+  filaCard: {
+    backgroundColor: '#EAEAEA',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 12,
+  },
+  filaInfo: {
+    flexDirection: 'column',
+  },
+  filaQuadraNome: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#333',
+  },
+  filaQuantidade: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  filaUltimaAtualizacao: {
+    fontSize: 12,
+    color: '#888',
+    fontStyle: 'italic',
+  },
 });
