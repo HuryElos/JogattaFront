@@ -14,6 +14,7 @@ import DefineTeamSizeScreen from '../features/jogos/screens/DefineTeamSizeScreen
 
 // ➕ Importa a tela de pagamento
 import PagamentoScreen from '../features/jogos/screens/PagamentoScreen';
+import GameInviteScreen from '../features/jogos/screens/GameInviteScreen';
 
 const Stack = createStackNavigator();
 
@@ -89,6 +90,13 @@ export default function JogosStackNavigator() {
         name="Pagamento"
         component={PagamentoScreen}
         options={{ title: 'Pagamento' }}
+      />
+
+      {/* ➕ Tela de Convite de Jogo */}
+      <Stack.Screen
+        name="GameInvite"
+        component={GameInviteScreen}
+        options={{ title: 'Convite de Jogo' }}
       />
 
     </Stack.Navigator>

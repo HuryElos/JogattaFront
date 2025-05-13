@@ -25,6 +25,7 @@
   import CofreActions from '../components/cofre/CofreActions';
   import PagamentoStripe from '../components/PagamentoStripe';
   import CheckoutCofreModal from '../components/CheckoutCofreModal';
+  import InviteFriendsModal from '../components/InviteFriendsModal';
 
   const { width } = Dimensions.get('window');
 
@@ -47,6 +48,31 @@
     'balanceando times': 'people',
     'cancelado': 'close',
   };
+
+  // Função para registrar transação
+  async function registrarTransacao({
+    id_reserva,
+    id_usuario,
+    payment_intent_id,
+    valor_total,
+    valor_repasse,
+    taxa_jogatta
+  }) {
+    try {
+      await api.post('/api/pagamento/criar-transacao', {
+        id_reserva,
+        id_usuario,
+        stripe_payment_intent_id: payment_intent_id,
+        valor_total,
+        valor_repasse,
+        taxa_jogatta
+      });
+      console.log('✅ Transação registrada com sucesso.');
+    } catch (error) {
+      console.error('❌ Erro ao registrar transação:', error.response?.data || error.message);
+      throw error; // Propaga o erro para ser tratado pelo chamador
+    }
+  }
 
   const LiveRoomScreen = () => {
     const route = useRoute();
@@ -78,6 +104,9 @@
 
     // Modal de checkout
     const [mostrarCheckout, setMostrarCheckout] = useState(false);
+
+    // Modal de convite de amigos
+    const [showInviteModal, setShowInviteModal] = useState(false);
 
     // Função para forçar atualização do cofre
     const forcarAtualizacaoCofre = async (valorPorJogador) => {
@@ -348,6 +377,13 @@
       }
     };
 
+    const handleInviteFriends = (selectedFriends) => {
+      Alert.alert(
+        'Sucesso',
+        `Convite enviado para ${selectedFriends.length} amigo${selectedFriends.length !== 1 ? 's' : ''}!`
+      );
+    };
+
     // onRefresh atualizado para recarregar todos os dados
     const onRefresh = useCallback(() => {
       setRefreshing(true);
@@ -419,7 +455,11 @@
             <View 
               style={[
                 styles.playerAvatar,
-                { backgroundColor: isConfirmed ? `hsl(${hue}, ${saturation}%, ${lightness}%)` : '#F5F5F5' }
+                {
+                  borderWidth: 3,
+                  borderColor: isConfirmed ? '#34D399' : '#EF4444',
+                  backgroundColor: isConfirmed ? `hsl(${hue}, ${saturation}%, ${lightness}%)` : '#F5F5F5'
+                }
               ]}
             >
               <Text style={[
@@ -507,42 +547,28 @@
         >
           {/* Card laranja com os detalhes principais do jogo */}
           <View style={styles.orangeCard}>
-            <View style={styles.gameNameContainer}>
-              <Text style={styles.gameName} numberOfLines={1}>
-                {gameDetails.nome_jogo || `Sala #${id_jogo}`}
-              </Text>
-            </View>
-            
-            <View style={styles.infoContainer}>
-              <View style={styles.infoItem}>
-                <MaterialCommunityIcons name="clock-outline" size={18} color="#FFF" />
-                <Text style={styles.infoText}>
-                  {gameDetails.horario_inicio?.substring(0, 5)} - {gameDetails.horario_fim?.substring(0, 5)}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text style={styles.gameName} numberOfLines={1}>
+                  {gameDetails.nome_jogo || `Sala #${id_jogo}`}
                 </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                  <MaterialCommunityIcons name="map-marker" size={16} color="#FFF" />
+                  <Text style={[styles.infoText, { marginLeft: 4 }]}>{gameDetails.local || 'Local não definido'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                  <MaterialCommunityIcons name="calendar" size={16} color="#FFF" />
+                  <Text style={[styles.infoText, { marginLeft: 4 }]}>{formatDate(gameDetails.data_jogo)}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                  <MaterialCommunityIcons name="clock-outline" size={16} color="#FFF" />
+                  <Text style={[styles.infoText, { marginLeft: 4 }]}>{gameDetails.horario_inicio?.substring(0, 5)} - {gameDetails.horario_fim?.substring(0, 5)}</Text>
+                </View>
               </View>
-              <View style={styles.infoItem}>
-                <MaterialCommunityIcons name="calendar" size={18} color="#FFF" />
-                <Text style={styles.infoText}>
-                  {formatDate(gameDetails.data_jogo)}
-                </Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>Reservado</Text>
+                <MaterialCommunityIcons name="check-circle" size={28} color="#34D399" style={{ marginTop: 4 }} />
               </View>
-              <View style={styles.infoItem}>
-                <MaterialCommunityIcons name="map-marker" size={18} color="#FFF" />
-                <Text style={styles.infoText} numberOfLines={1}>
-                  {gameDetails.local || 'Local não definido'}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.statusBadge}>
-              <MaterialCommunityIcons 
-                name={statusIcon} 
-                size={16} 
-                color="#FFF"
-              />
-              <Text style={styles.statusText}>
-                {gameStatus.charAt(0).toUpperCase() + gameStatus.slice(1)}
-              </Text>
             </View>
           </View>
 
@@ -604,6 +630,15 @@
                 <View style={styles.actionsRow}>
                   <TouchableOpacity
                     style={styles.actionButton}
+                    onPress={() => setShowInviteModal(true)}
+                  >
+                    <View style={[styles.actionButtonGradient, { backgroundColor: '#FF6B00' }]}>
+                      <MaterialCommunityIcons name="account-plus" size={18} color="#FFF" />
+                      <Text style={styles.actionButtonText}>Convidar Amigos</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionButton}
                     onPress={criarLinkSala}
                   >
                     <View style={[styles.actionButtonGradient, { backgroundColor: '#3B82F6' }]}>
@@ -611,6 +646,8 @@
                       <Text style={styles.actionButtonText}>Gerar Link</Text>
                     </View>
                   </TouchableOpacity>
+                </View>
+                <View style={styles.actionsRow}>
                   <TouchableOpacity
                     style={[styles.actionButton, !linkSala && styles.actionButtonDisabled]}
                     onPress={compartilharLink}
@@ -621,14 +658,16 @@
                       <Text style={styles.actionButtonText}>Compartilhar</Text>
                     </View>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={notificarAusentes}
+                  >
+                    <View style={[styles.actionButtonGradient, { backgroundColor: '#F59E0B' }]}>
+                      <MaterialCommunityIcons name="bell-ring-outline" size={18} color="#FFF" />
+                      <Text style={styles.actionButtonText}>Notificar</Text>
+                    </View>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.notifyButton}
-                  onPress={notificarAusentes}
-                >
-                  <MaterialCommunityIcons name="bell-ring-outline" size={18} color="#FF6B00" />
-                  <Text style={styles.notifyButtonText}>Notificar Ausentes</Text>
-                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -694,38 +733,39 @@
           {/* Componente do Cofre renderizado para todos */}
           {reservationStatus === 'aprovada' && reservationId && (
             <View style={styles.paymentCard}>
-              <View style={styles.cofreHeader}>
-                <View style={styles.cofreTitleContainer}>
-                  <Text style={styles.cofreTitle}>Cofre da Partida</Text>
-                 <Text style={styles.cofreProgress}>
-  {Math.round(
-    ((cofre?.valor_pago || 0) / 100 / (cofre?.valor_total || 1)) * 100
-  )}%
-</Text>
-
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <MaterialCommunityIcons name="piggy-bank-outline" size={36} color="#FF6B00" style={{ marginRight: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#1F2937' }}>Total</Text>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#FF6B00' }}>R$ {cofre?.valor_total != null ? parseFloat(cofre.valor_total).toFixed(2) : quadraPreco ? (quadraPreco / 100).toFixed(2) : '0.00'}</Text>
+                  <Text style={{ fontSize: 14, color: '#4B5563', marginTop: 2 }}>Você: R$ {quadraPreco ? (quadraPreco / (gameDetails.limite_jogadores || confirmedPlayers.length) / 100).toFixed(2) : '0.00'}</Text>
                 </View>
-                <View style={styles.progressBarContainer}>
-                  <View style={styles.progressBackground}>
-                    <View 
-                      style={[
-                        styles.progressFill, 
-                        { 
-                          width: `${Math.min(
-                            ((cofre?.valor_pago || 0) / (cofre?.valor_total || 1)) * 100, 
-                            100
-                          )}%` 
-                        }
-                      ]} 
-                    />
-                  </View>
-                  <View style={styles.progressLabels}>
-                    <Text style={styles.progressLabel}>
-  R$ {cofre?.valor_pago != null ? (cofre.valor_pago / 100).toFixed(2) : '0.00'}
-</Text>
-                    <Text style={styles.progressLabel}>
-                      R$ {cofre?.valor_total != null ? parseFloat(cofre.valor_total).toFixed(2) : quadraPreco ? (quadraPreco / 100).toFixed(2) : '0.00'}
-                    </Text>
-                  </View>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: '#4B5563' }}>{cofre?.pagantes || 0}/{gameDetails.limite_jogadores || confirmedPlayers.length} já pagaram</Text>
+                  <Text style={{ fontSize: 13, color: '#4B5563', marginTop: 2 }}>Divisão {Math.round(((cofre?.valor_pago || 0) / 100 / (cofre?.valor_total || 1)) * 100)}%</Text>
+                </View>
+              </View>
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBackground}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { 
+                        width: `${Math.min(
+                          ((cofre?.valor_pago || 0) / (cofre?.valor_total || 1)) * 100, 
+                          100
+                        )}%` 
+                      }
+                    ]} 
+                  />
+                </View>
+                <View style={styles.progressLabels}>
+                  <Text style={styles.progressLabel}>
+                    R$ {cofre?.valor_pago != null ? (cofre.valor_pago / 100).toFixed(2) : '0.00'}
+                  </Text>
+                  <Text style={styles.progressLabel}>
+                    R$ {cofre?.valor_total != null ? parseFloat(cofre.valor_total).toFixed(2) : quadraPreco ? (quadraPreco / 100).toFixed(2) : '0.00'}
+                  </Text>
                 </View>
               </View>
 
@@ -734,9 +774,9 @@
                   <View style={styles.cofreInfoItem}>
                     <Text style={styles.cofreInfoLabel}>Valor Total</Text>
                     <Text style={styles.cofreInfoValue}>
-                    R$ {cofre?.valor_total != null 
-  ? parseFloat(cofre.valor_total).toFixed(2)
-  : quadraPreco ? (quadraPreco / 100).toFixed(2) : '0.00'}
+                      R$ {cofre?.valor_total != null 
+                        ? parseFloat(cofre.valor_total).toFixed(2)
+                        : quadraPreco ? (quadraPreco / 100).toFixed(2) : '0.00'}
                     </Text>
                   </View>
                   <View style={styles.cofreInfoItem}>
@@ -827,7 +867,14 @@
             </View>
           </View>
           
-          <View style={{ height: 40 }} />
+          <View style={{ alignItems: 'center', marginTop: 24 }}>
+            <TouchableOpacity
+              style={{ backgroundColor: '#2563EB', paddingVertical: 12, paddingHorizontal: 32, borderRadius: 8 }}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 16 }}>Sair da Sala</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Modal do Cofre (Checkout/Stripe) */}
           <CheckoutCofreModal
@@ -923,6 +970,16 @@
             quantidadeJogadores={gameDetails.limite_jogadores || confirmedPlayers.length}
             onPaymentSuccess={forcarAtualizacaoCofre}
             forcarAtualizacaoStatusJogador={forcarAtualizacaoStatusJogador}
+            registrarTransacao={registrarTransacao}
+          />
+
+          {/* Adicionar o modal de convite de amigos */}
+          <InviteFriendsModal
+            visible={showInviteModal}
+            onClose={() => setShowInviteModal(false)}
+            onInvite={handleInviteFriends}
+            gameId={id_jogo}
+            userId={userId}
           />
 
         </ScrollView>
@@ -931,7 +988,6 @@
   };
 
   export default LiveRoomScreen;
-
   const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FFF' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' },
@@ -1216,3 +1272,4 @@
     emptyTitle: { fontSize: 16, fontWeight: '600', color: '#4B5563', marginTop: 12, marginBottom: 4 },
     emptySubtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center' },
   });
+

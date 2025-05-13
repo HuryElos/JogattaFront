@@ -1,4 +1,4 @@
-import React, { useContext, useState, useCallback, useMemo } from 'react';
+import React, { useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import {
   StatusBar,
   Dimensions,
   ScrollView,
-  Button
+  Button,
+  Pressable
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -70,6 +71,10 @@ export default function HomeScreen({ navigation }) {
     );
   }, [tempPlayersData]);
 
+  // Estado para convites recebidos
+  const [convitesRecebidos, setConvitesRecebidos] = useState([]);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+
   // Limpa os estados dos modais quando a tela perde o foco
   useFocusEffect(
     useCallback(() => {
@@ -90,6 +95,19 @@ export default function HomeScreen({ navigation }) {
       fetchSalasAtivas();
     }, [])
   );
+
+  useEffect(() => {
+    const fetchConvites = async () => {
+      try {
+        const response = await api.get('/api/convites/meus');
+        setConvitesRecebidos(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error("Erro ao buscar convites:", err);
+        setConvitesRecebidos([]);
+      }
+    };
+    fetchConvites();
+  }, []);
 
   const fetchSalasAtivas = async () => {
     setLoadingSalas(true);
@@ -250,6 +268,36 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userSuggestions, setUserSuggestions] = useState([]);
+  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
+
+  const handleSearchChange = async (text) => {
+    setSearchQuery(text);
+    if (text.length >= 2 && text.startsWith("@")) {
+      try {
+        // Remove o @ para buscar pelo tt
+        const query = text.slice(1);
+        // Substitua pelo seu endpoint real e id do usuário logado
+        const response = await api.get(`/api/amigos/buscar?organizador_id=${user.id}&query=${query}`);
+        setUserSuggestions(response.data || []);
+        setShowUserSuggestions(true);
+      } catch (err) {
+        setUserSuggestions([]);
+        setShowUserSuggestions(true);
+      }
+    } else {
+      setShowUserSuggestions(false);
+      setUserSuggestions([]);
+    }
+  };
+
+  const handleUserPress = (user) => {
+    setShowUserSuggestions(false);
+    setSearchQuery("");
+    navigation.navigate('ViewProfile', { userId: user.id });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
@@ -260,8 +308,13 @@ export default function HomeScreen({ navigation }) {
             <MaterialCommunityIcons name="account-circle-outline" size={24} color="#000" />
             <Text style={styles.headerText}>Olá, {user?.apelido || 'Fulane'}!</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+          <TouchableOpacity onPress={() => setShowNotificationsModal(true)} style={{ position: 'relative' }}>
             <MaterialCommunityIcons name="bell-outline" size={24} color="#000" />
+            {convitesRecebidos.length > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>{convitesRecebidos.length}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -270,10 +323,37 @@ export default function HomeScreen({ navigation }) {
           <MaterialCommunityIcons name="magnify" size={20} color="#666" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Procure quadras ou partidas"
+            placeholder="Procure quadras, partidas ou pessoas (@tt)"
             placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </View>
+        {showUserSuggestions && (
+          <View style={styles.suggestionsContainer}>
+            {userSuggestions.length === 0 ? (
+              <Text style={styles.suggestionEmpty}>Nenhum usuário encontrado.</Text>
+            ) : (
+              userSuggestions.map((user) => (
+                <TouchableOpacity
+                  key={user.id}
+                  style={styles.suggestionItem}
+                  onPress={() => handleUserPress(user)}
+                >
+                  <View style={styles.suggestionAvatar}>
+                    <MaterialCommunityIcons name="account" size={22} color="#FFF" />
+                  </View>
+                  <View>
+                    <Text style={styles.suggestionName}>{user.nome}</Text>
+                    <Text style={styles.suggestionTT}>@{user.tt}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
 
         {/* BANNER */}
         <ImageBackground
@@ -629,6 +709,79 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.buttonText}>Entrar na Partida</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE NOTIFICAÇÕES */}
+      <Modal
+        visible={showNotificationsModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowNotificationsModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowNotificationsModal(false)} />
+        <View style={styles.notificationsModal}>
+          <View style={styles.notificationsHeader}>
+            <Text style={styles.notificationsTitle}>Notificações</Text>
+            <TouchableOpacity onPress={() => setShowNotificationsModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          {convitesRecebidos.length === 0 ? (
+            <Text style={styles.noNotificationsText}>Nenhum convite recebido.</Text>
+          ) : (
+            convitesRecebidos.map((convite, idx) => (
+              <View key={convite.id_convite || idx} style={styles.notificationItem}>
+                <MaterialCommunityIcons name="email" size={20} color="#FF6B00" style={{ marginRight: 8 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.notificationText}>
+                    Convite para o jogo: <Text style={{ fontWeight: 'bold' }}>{convite.nome_jogo || convite.id_jogo || 'Partida'}</Text>
+                  </Text>
+                  <Text style={styles.notificationSubText}>
+                    Organizador: <Text style={{ fontWeight: 'bold' }}>{convite.nome_organizador || '-'}</Text>
+                  </Text>
+                  <Text style={styles.notificationSubText}>
+                    {convite.data_jogo ? `Data: ${convite.data_jogo}` : ''}
+                  </Text>
+                  <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+                    <TouchableOpacity
+                      style={[styles.primaryButton, { flex: 1, marginRight: 4 }]}
+                      onPress={async () => {
+                        try {
+                          await api.post('/api/lobby/entrar', {
+                            convite_uuid: convite.convite_uuid,
+                            id_usuario: user.id
+                          });
+                          setConvitesRecebidos(prev => prev.filter((c, i) => i !== idx));
+                          setShowNotificationsModal(false);
+                          navigation.navigate('LiveRoom', { id_jogo: convite.id_jogo });
+                        } catch (err) {
+                          Alert.alert('Erro', 'Não foi possível entrar na sala.');
+                        }
+                      }}
+                    >
+                      <Text style={styles.buttonText}>Aceitar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryButton, styles.primaryButtonDisabled, { flex: 1 }]}
+                      onPress={async () => {
+                        try {
+                          await api.post('/api/lobby/convites/recusar', {
+                            convite_uuid: convite.convite_uuid
+                          });
+                          setConvitesRecebidos(prev => prev.filter((c, i) => i !== idx));
+                        } catch (err) {
+                          Alert.alert('Erro', 'Não foi possível recusar o convite.');
+                        }
+                      }}
+                    >
+                      <Text style={styles.buttonText}>Recusar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
         </View>
       </Modal>
 
@@ -1088,5 +1241,204 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '600',
     fontSize: 15,
+  },
+
+  /* SEÇÃO DE AMIGOS */
+  friendsSection: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+  },
+  friendsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  friendsSearchContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F2F2F2',
+    padding: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  friendsSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 8,
+  },
+  friendsList: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  addFriendCard: {
+    width: 80,
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  addFriendIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF5F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  addFriendText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  friendCard: {
+    width: 80,
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    padding: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  friendAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF6B00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  friendName: {
+    fontSize: 12,
+    color: '#333',
+    textAlign: 'center',
+  },
+
+  /* SEARCH SUGGESTIONS */
+  suggestionsContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginTop: -8,
+    marginBottom: 8,
+    paddingVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  suggestionAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FF6B00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  suggestionName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  suggestionTT: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  suggestionEmpty: {
+    padding: 12,
+    color: '#999',
+    textAlign: 'center',
+  },
+
+  /* NOTIFICATION BADGE */
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#FF6B00',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    zIndex: 10,
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+
+  /* MODAL DE NOTIFICAÇÕES */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  notificationsModal: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    left: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 100,
+  },
+  notificationsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  notificationsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  noNotificationsText: {
+    color: '#6B7280',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF9F5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+  notificationText: {
+    color: '#1F2937',
+    fontSize: 15,
+  },
+  notificationSubText: {
+    color: '#6B7280',
+    fontSize: 13,
   },
 });
