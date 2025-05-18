@@ -523,4 +523,4 @@ const courtOwnerStyles = StyleSheet.create({
   },
 });
 
-export default LoginScreen; 
+export default LoginScreen;
