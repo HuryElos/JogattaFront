@@ -2,16 +2,58 @@ import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
+import { StackNavigationProp } from '@react-navigation/stack';
 import api from '../../../services/api';
+import type { Amigo, Grupo } from '../types';
 
-console.log('API importada no useAmigos.js:', api);
+// -------------------------------
+// TIPOS
+// -------------------------------
+interface DecodedToken {
+  id: number;
+  exp: number;
+}
 
-/**
- * Função para gerar um ID único dentro do intervalo de 32-bit integer.
- */
-const gerarIdUnico = async (amigosValidos, temporarios) => {
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+}
+
+interface AmigosResponse {
+  data: Amigo[];
+}
+
+interface TemporarioResponse {
+  jogador: Amigo;
+}
+
+interface GrupoResponse {
+  group: Grupo;
+}
+
+type RootStackParamList = {
+  Login: undefined;
+};
+
+type UseAmigosNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
+
+interface UseAmigosReturn {
+  amigos: Amigo[];
+  amigosAll: Amigo[];
+  grupos: Grupo[];
+  isLoading: boolean;
+  carregarDadosIniciais: () => Promise<void>;
+  filtrarAmigos: (termoBusca: string) => void;
+  criarAmigoTemporario: (nome: string, fluxo?: 'online' | 'offline') => Promise<void>;
+  criarGrupo: (nomeGrupo: string, membros: number[]) => Promise<void>;
+}
+
+// -------------------------------
+// FUNÇÕES AUXILIARES
+// -------------------------------
+const gerarIdUnico = async (amigosValidos: Amigo[], temporarios: Amigo[]): Promise<number> => {
   const MAX_INT = 2147483647;
-  let idGerado;
+  let idGerado: number;
   let tentativa = 0;
   const MAX_TENTATIVAS = 1000;
 
@@ -29,16 +71,22 @@ const gerarIdUnico = async (amigosValidos, temporarios) => {
   return idGerado;
 };
 
-const useAmigos = (navigation) => {
-  const [amigos, setAmigos] = useState([]);
-  const [amigosAll, setAmigosAll] = useState([]);
-  const [grupos, setGrupos] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+// -------------------------------
+// HOOK PRINCIPAL
+// -------------------------------
+const useAmigos = (navigation: UseAmigosNavigationProp): UseAmigosReturn => {
+  const [amigos, setAmigos] = useState<Amigo[]>([]);
+  const [amigosAll, setAmigosAll] = useState<Amigo[]>([]);
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const carregarAmigosTemporarios = useCallback(async () => {
+  // -------------------------------
+  // FUNÇÕES DE AMIGOS TEMPORÁRIOS
+  // -------------------------------
+  const carregarAmigosTemporarios = useCallback(async (): Promise<Amigo[]> => {
     try {
       const storageData = await AsyncStorage.getItem('amigosTemporarios');
-      const temporarios = JSON.parse(storageData) || [];
+      const temporarios = JSON.parse(storageData || '[]') as Amigo[];
       console.log('Amigos temporários carregados:', temporarios);
       return temporarios;
     } catch (error) {
@@ -48,7 +96,7 @@ const useAmigos = (navigation) => {
   }, []);
 
   const salvarAmigoTemporario = useCallback(
-    async (novoAmigo) => {
+    async (novoAmigo: Amigo): Promise<void> => {
       try {
         const amigosTemporarios = await carregarAmigosTemporarios();
         amigosTemporarios.push(novoAmigo);
@@ -62,24 +110,25 @@ const useAmigos = (navigation) => {
     [carregarAmigosTemporarios]
   );
 
-  const carregarDadosIniciais = useCallback(async () => {
+  // -------------------------------
+  // FUNÇÕES PRINCIPAIS
+  // -------------------------------
+  const carregarDadosIniciais = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('Usuário não autenticado.');
       }
-      const { id } = jwtDecode(token);
+      const { id } = jwtDecode<DecodedToken>(token);
       console.log('Usuário logado com ID:', id);
 
-      // Carregar amigos "oficiais" da API
-      const amigosResp = await api.get(`/api/amigos/listar/${id}`, {
+      const amigosResp = await api.get<AmigosResponse>(`/api/amigos/listar/${id}`, {
         params: { page: 1, limit: 9999, searchTerm: '' },
       });
       const amigosValidos = Array.isArray(amigosResp.data.data) ? amigosResp.data.data : [];
       console.log('Amigos carregados da API:', amigosValidos);
 
-      // Carregar temporários (OFFLINE)
       const temporarios = await carregarAmigosTemporarios();
       const allAmigos = [...temporarios, ...amigosValidos];
       console.log('Lista completa de amigos (temporários + válidos):', allAmigos);
@@ -87,15 +136,15 @@ const useAmigos = (navigation) => {
       setAmigosAll(allAmigos);
       setAmigos(allAmigos);
 
-      // Carregar grupos
-      const gruposResp = await api.get(`/api/groups/listar/${id}`);
+      const gruposResp = await api.get<Grupo[]>(`/api/groups/listar/${id}`);
       const gruposCarregados = Array.isArray(gruposResp.data) ? gruposResp.data : [];
       console.log('Grupos carregados:', gruposCarregados);
       setGrupos(gruposCarregados);
     } catch (error) {
       console.error('Erro ao carregar dados iniciais:', error);
-      Alert.alert('Erro', error.message || 'Falha ao carregar dados. Tente novamente.');
-      if (error.message === 'Usuário não autenticado.') {
+      const errorMessage = error instanceof Error ? error.message : 'Falha ao carregar dados. Tente novamente.';
+      Alert.alert('Erro', errorMessage);
+      if (error instanceof Error && error.message === 'Usuário não autenticado.') {
         navigation.navigate('Login');
       }
     } finally {
@@ -104,7 +153,7 @@ const useAmigos = (navigation) => {
   }, [carregarAmigosTemporarios, navigation]);
 
   const filtrarAmigos = useCallback(
-    (termoBusca) => {
+    (termoBusca: string): void => {
       const term = termoBusca.toLowerCase();
       const filtrados = amigosAll.filter((a) => a.nome.toLowerCase().includes(term));
       setAmigos(filtrados);
@@ -113,14 +162,13 @@ const useAmigos = (navigation) => {
     [amigosAll]
   );
 
-  // Cria jogador temporário OFFLINE
   const criarAmigoTemporarioOffline = useCallback(
-    async (nome) => {
+    async (nome: string): Promise<void> => {
       if (!nome.trim()) throw new Error('O nome do jogador é obrigatório.');
       const amigosOficiais = amigosAll.filter((a) => !a.temporario);
       const temporariosOffline = await carregarAmigosTemporarios();
       const idGerado = await gerarIdUnico(amigosOficiais, temporariosOffline);
-      const novoAmigo = {
+      const novoAmigo: Amigo = {
         id: idGerado,
         nome: nome.trim(),
         email: null,
@@ -135,13 +183,12 @@ const useAmigos = (navigation) => {
     [amigosAll, carregarAmigosTemporarios, salvarAmigoTemporario]
   );
 
-  // Cria jogador temporário ONLINE
-  const criarAmigoTemporarioOnline = useCallback(async (nome) => {
+  const criarAmigoTemporarioOnline = useCallback(async (nome: string): Promise<void> => {
     if (!nome.trim()) throw new Error('O nome do jogador é obrigatório.');
     try {
-      const user = await api.get('/api/usuario/me');
+      const user = await api.get<{ id_usuario: number }>('/api/usuario/me');
       const organizador_id = user.data.id_usuario;
-      const response = await api.post('/api/temporarios/criar', {
+      const response = await api.post<TemporarioResponse>('/api/temporarios/criar', {
         organizador_id,
         nome: nome.trim(),
       });
@@ -150,14 +197,13 @@ const useAmigos = (navigation) => {
       setAmigosAll((prev) => [...prev, { ...novoTemp, temporario: true }]);
       setAmigos((prev) => [...prev, { ...novoTemp, temporario: true }]);
     } catch (error) {
-      console.error('Erro ao criar amigo temporário online:', error.response?.data || error.message);
+      console.error('Erro ao criar amigo temporário online:', error);
       throw new Error('Não foi possível criar o jogador temporário online.');
     }
   }, []);
 
-  // Decide criar OFFLINE ou ONLINE
   const criarAmigoTemporario = useCallback(
-    async (nome, fluxo = 'offline') => {
+    async (nome: string, fluxo: 'online' | 'offline' = 'offline'): Promise<void> => {
       if (fluxo === 'online') {
         await criarAmigoTemporarioOnline(nome);
       } else {
@@ -167,9 +213,8 @@ const useAmigos = (navigation) => {
     [criarAmigoTemporarioOffline, criarAmigoTemporarioOnline]
   );
 
-  // Criação de grupo com associação imediata dos membros selecionados
   const criarGrupo = useCallback(
-    async (nomeGrupo, membros) => {
+    async (nomeGrupo: string, membros: number[]): Promise<void> => {
       if (!nomeGrupo.trim()) {
         throw new Error('O nome do grupo não pode estar vazio.');
       }
@@ -180,18 +225,16 @@ const useAmigos = (navigation) => {
           navigation.navigate('Login');
           return;
         }
-        const { id } = jwtDecode(token);
+        const { id } = jwtDecode<DecodedToken>(token);
 
-        const response = await api.post('/api/groups/criar', {
+        const response = await api.post<GrupoResponse>('/api/groups/criar', {
           organizador_id: id,
           nome_grupo: nomeGrupo,
-          membros, // Envia os IDs dos membros selecionados
+          membros,
         });
 
         if (response.status === 201) {
-          let grupoCriado;
-          // Se a API retornar um grupo com membros não vazios, usa-o;
-          // senão, forçamos a inclusão dos membros a partir dos IDs selecionados.
+          let grupoCriado: Grupo;
           if (
             response.data.group &&
             Array.isArray(response.data.group.membros) &&
@@ -199,25 +242,18 @@ const useAmigos = (navigation) => {
           ) {
             grupoCriado = response.data.group;
           } else {
+            const membrosGrupo = amigosAll.filter((a) => membros.includes(a.id_usuario || a.id));
             grupoCriado = {
-              id_grupo: response.data.group ? response.data.group.id_grupo : response.data.id,
-              nome_grupo: nomeGrupo,
-              membros: membros.map((membroId) => {
-                const amigo = amigosAll.find(
-                  (a) => (a.id_usuario ? a.id_usuario === membroId : a.id === membroId)
-                );
-                return amigo || { id: membroId, nome: 'Desconhecido' };
-              }),
+              ...response.data.group,
+              membros: membrosGrupo,
             };
           }
           setGrupos((prev) => [grupoCriado, ...prev]);
-          Alert.alert('Sucesso', `Grupo "${nomeGrupo}" criado com sucesso!`);
-        } else {
-          Alert.alert('Erro', 'Não foi possível criar o grupo.');
+          console.log('Grupo criado com sucesso:', grupoCriado);
         }
       } catch (error) {
         console.error('Erro ao criar grupo:', error);
-        Alert.alert('Erro', 'Erro ao conectar-se ao servidor.');
+        throw new Error('Não foi possível criar o grupo.');
       }
     },
     [amigosAll, navigation]
@@ -232,9 +268,7 @@ const useAmigos = (navigation) => {
     filtrarAmigos,
     criarAmigoTemporario,
     criarGrupo,
-    setAmigos,
-    setAmigosAll,
   };
 };
 
-export default useAmigos;
+export default useAmigos; 

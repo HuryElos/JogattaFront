@@ -8,23 +8,57 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { listarGrupos, criarGrupo, listarMembrosGrupo, adicionarMembroGrupo } from '../services/groupService';
+import { StackNavigationProp } from '@react-navigation/stack';
+// import { listarGrupos, criarGrupo, listarMembrosGrupo, adicionarMembroGrupo } from '../services/groupService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const GroupsScreen = ({ navigation }) => {
-  const [grupos, setGrupos] = useState([]);
-  const [novoGrupo, setNovoGrupo] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [membros, setMembros] = useState([]);
+interface Grupo {
+  id_grupo: number;
+  nome_grupo: string;
+  organizador_id: number;
+}
+
+interface Membro {
+  id: number;
+  nome: string;
+  email?: string;
+}
+
+interface DecodedToken {
+  id: number;
+  // Adicione outros campos do token conforme necessário
+}
+
+type RootStackParamList = {
+  GroupsScreen: undefined;
+  // Adicione outras rotas conforme necessário
+};
+
+type GroupsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'GroupsScreen'>;
+
+interface GroupsScreenProps {
+  navigation: GroupsScreenNavigationProp;
+}
+
+const GroupsScreen: React.FC<GroupsScreenProps> = ({ navigation }) => {
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [novoGrupo, setNovoGrupo] = useState<string>('');
+  const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
+  const [membros, setMembros] = useState<Membro[]>([]);
 
   useEffect(() => {
     fetchGrupos();
   }, []);
 
-  const fetchGrupos = async () => {
+  const fetchGrupos = async (): Promise<void> => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const userId = JSON.parse(atob(token.split('.')[1])).id;
+      if (!token) {
+        throw new Error('Token não encontrado');
+      }
+      
+      const decodedToken = JSON.parse(atob(token.split('.')[1])) as DecodedToken;
+      const userId = decodedToken.id;
 
       const gruposData = await listarGrupos(userId);
       setGrupos(gruposData);
@@ -34,7 +68,7 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const handleCriarGrupo = async () => {
+  const handleCriarGrupo = async (): Promise<void> => {
     if (!novoGrupo.trim()) {
       Alert.alert('Erro', 'O nome do grupo não pode estar vazio.');
       return;
@@ -42,7 +76,12 @@ const GroupsScreen = ({ navigation }) => {
 
     try {
       const token = await AsyncStorage.getItem('token');
-      const userId = JSON.parse(atob(token.split('.')[1])).id;
+      if (!token) {
+        throw new Error('Token não encontrado');
+      }
+      
+      const decodedToken = JSON.parse(atob(token.split('.')[1])) as DecodedToken;
+      const userId = decodedToken.id;
 
       const novoGrupoData = await criarGrupo({ organizador_id: userId, nome_grupo: novoGrupo });
       setGrupos((prevGrupos) => [...prevGrupos, novoGrupoData]);
@@ -54,7 +93,7 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const handleSelecionarGrupo = async (grupoId) => {
+  const handleSelecionarGrupo = async (grupoId: number): Promise<void> => {
     try {
       const membrosData = await listarMembrosGrupo(grupoId);
       setSelectedGroup(grupoId);
@@ -65,7 +104,7 @@ const GroupsScreen = ({ navigation }) => {
     }
   };
 
-  const handleAdicionarMembro = async (grupoId, amigoId) => {
+  const handleAdicionarMembro = async (grupoId: number, amigoId: number): Promise<void> => {
     try {
       await adicionarMembroGrupo(grupoId, amigoId);
       Alert.alert('Sucesso', 'Membro adicionado com sucesso!');
@@ -175,4 +214,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GroupsScreen;
+export default GroupsScreen; 

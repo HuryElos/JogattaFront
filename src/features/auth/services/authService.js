@@ -26,20 +26,32 @@ const response = await api.post(endpoint, { email, senha });
 };
 
 // Função para registro (Jogador)
-export const register = async (nome, email, senha, tt, altura) => {
+export const register = async (playerParams) => {
   try {
-    const response = await api.post('/api/auth/register', { nome, email, senha, tt, altura });
+    const body = {
+      nome: playerParams.name,
+      email: playerParams.email,
+      senha: playerParams.password,
+      tt: playerParams.tt,
+      altura: playerParams.altura,
+      role: playerParams.role
+    };
+    
+    const response = await api.post('/api/auth/register', body);
     console.log('Resposta do registro:', response.data);
     return response.data;
   } catch (error) {
     if (error.response) {
       console.error('Erro ao registrar (resposta da API):', error.response.data);
+      // Retorna a mensagem de erro específica da API se disponível
+      throw new Error(error.response.data.error || 'Falha no registro. Tente novamente.');
     } else if (error.request) {
       console.error('Erro ao registrar (sem resposta do servidor):', error.request);
+      throw new Error('Erro de conexão. Verifique sua internet e tente novamente.');
     } else {
       console.error('Erro ao registrar (configuração):', error.message);
+      throw new Error('Erro interno. Por favor, tente novamente.');
     }
-    throw new Error('Falha no registro. Tente novamente.');
   }
 };
 
@@ -47,15 +59,15 @@ export const register = async (nome, email, senha, tt, altura) => {
  * Função para registro de Dono de Quadra (Gestor)
  * Chama o endpoint: /api/empresas/cadastro
  */
-export const registerCourtOwner = async (companyName, email, password, cnpj, phone, address) => {
+export const registerCourtOwner = async (params) => {
   try {
     const body = {
-      nome: companyName,
-      email_empresa: email,
-      senha: password,
-      cnpj: cnpj,
-      contato: phone,
-      endereco: address
+      nome: params.companyName,
+      email_empresa: params.email,
+      senha: params.password,
+      cnpj: params.cnpj,
+      contato: params.phone,
+      endereco: params.address
     };
     const response = await api.post('/api/empresas/cadastro', body);
     console.log('Resposta do registro de Dono de Quadra:', response.data);

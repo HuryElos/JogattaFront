@@ -1,5 +1,3 @@
-// src/features/amigos/screens/ConvidarAmigos.js
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -15,6 +13,12 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { RouteProp } from '@react-navigation/native';
+
+// Tipos
+import { AppNavigationProp, RootStackParamList, Fluxo } from '../types/navigation';
+import { Amigo, Grupo, Selecao, TempAmigo } from '../types/amigos';
+import { UseAmigosProps } from '../types/hooks';
 
 // Modais
 import CriarGrupoModal from '../components/modals/CriarGrupoModal';
@@ -29,39 +33,37 @@ import AmigosList from '../components/AmigosList';
 import ActionsFooter from '../components/ActionsFooter';
 import api from '../../../services/api';
 
-const ConvidarAmigos = ({ navigation, route }) => {
-  const fluxo = route.params?.fluxo || 'offline';
+interface ConvidarAmigosProps {
+  navigation: AppNavigationProp;
+  route: RouteProp<RootStackParamList, 'ConvidarAmigos'>;
+}
 
-  // -------------------------------
+const ConvidarAmigos: React.FC<ConvidarAmigosProps> = ({ navigation, route }) => {
+  const fluxo = (route.params?.fluxo as Fluxo) || 'offline';
+
   // STATES GERAIS
-  // -------------------------------
-  const [novoAmigoNome, setNovoAmigoNome] = useState('');
-  const [modalCriarVisible, setModalCriarVisible] = useState(false);
-  const [modalEditarVisible, setModalEditarVisible] = useState(false);
-  const [modalAddAmigoVisible, setModalAddAmigoVisible] = useState(false);
+  const [novoAmigoNome, setNovoAmigoNome] = useState<string>('');
+  const [modalCriarVisible, setModalCriarVisible] = useState<boolean>(false);
+  const [modalEditarVisible, setModalEditarVisible] = useState<boolean>(false);
+  const [modalAddAmigoVisible, setModalAddAmigoVisible] = useState<boolean>(false);
 
-  const [novoGrupo, setNovoGrupo] = useState('');
-  const [grupoEditando, setGrupoEditando] = useState(null);
-  const [nomeEditando, setNomeEditando] = useState('');
-  const [membrosEditando, setMembrosEditando] = useState([]);
-  const [searchMembroTerm, setSearchMembroTerm] = useState('');
+  const [novoGrupo, setNovoGrupo] = useState<string>('');
+  const [grupoEditando, setGrupoEditando] = useState<Grupo | null>(null);
+  const [nomeEditando, setNomeEditando] = useState<string>('');
+  const [membrosEditando, setMembrosEditando] = useState<number[]>([]);
+  const [searchMembroTerm, setSearchMembroTerm] = useState<string>('');
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  // Filtro: "amigos", "temporarios", "grupos", "lista"
-  const [filtro, setFiltro] = useState('amigos');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [filtro, setFiltro] = useState<'amigos' | 'temporarios' | 'grupos' | 'lista'>('amigos');
 
-  // -------------------------------
-  // STATES PARA O FLUXO "LISTA"
-  // -------------------------------
-  const [listaPlayers, setListaPlayers] = useState([]);
-  const [showListaModal, setShowListaModal] = useState(false);
-  const [listaPastedText, setListaPastedText] = useState('');
-  const [listaParsedPlayers, setListaParsedPlayers] = useState([]);
+  // STATES PARA FLUXO LISTA
+  const [listaPlayers, setListaPlayers] = useState<Amigo[]>([]);
+  const [showListaModal, setShowListaModal] = useState<boolean>(false);
+  const [listaPastedText, setListaPastedText] = useState<string>('');
+  const [listaParsedPlayers, setListaParsedPlayers] = useState<string[]>([]);
 
-  // -------------------------------
   // HOOKS
-  // -------------------------------
   const { selecionados, toggleSelecionado, setSelecionados } = useToggleSelecionado();
   const {
     amigos,
@@ -72,11 +74,9 @@ const ConvidarAmigos = ({ navigation, route }) => {
     filtrarAmigos,
     criarAmigoTemporario,
     criarGrupo,
-  } = useAmigos(navigation);
+  } = useAmigos(navigation as any);
 
-  // -------------------------------
   // CARREGAMENTO INICIAL
-  // -------------------------------
   useEffect(() => {
     carregarDadosIniciais();
   }, [carregarDadosIniciais]);
@@ -91,38 +91,27 @@ const ConvidarAmigos = ({ navigation, route }) => {
     filtrarAmigos(searchTerm);
   }, [searchTerm, filtrarAmigos]);
 
-  // -------------------------------
-  // LISTA DE AMIGOS DE EXIBIÇÃO
-  // -------------------------------
-  const listaAmigosExibicao = useMemo(() => {
-    if (filtro === 'amigos') {
-      return amigos.filter((a) => !a.temporario);
-    } else if (filtro === 'temporarios') {
-      return amigos.filter((a) => a.temporario && a.nome);
-    } else if (filtro === 'lista') {
-      return listaPlayers;
-    } else {
-      return [];
-    }
+  // LISTA DE AMIGOS PARA EXIBIÇÃO
+  const listaAmigosExibicao = useMemo<Amigo[]>(() => {
+    if (filtro === 'amigos') return amigos.filter((a) => !a.temporario);
+    if (filtro === 'temporarios') return amigos.filter((a) => a.temporario && a.nome);
+    if (filtro === 'lista') return listaPlayers;
+    return [];
   }, [filtro, amigos, listaPlayers]);
 
-  // -------------------------------
   // CRIAR JOGADOR TEMPORÁRIO
-  // -------------------------------
   const handleCriarJogadorTemporario = useCallback(async () => {
     try {
-      await criarAmigoTemporario(novoAmigoNome, fluxo);
+      await criarAmigoTemporario(novoAmigoNome, fluxo as 'offline' | 'online');
       setNovoAmigoNome('');
       setModalAddAmigoVisible(false);
       Alert.alert('Sucesso', 'Jogador temporário criado!');
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert('Erro', error.message);
     }
   }, [novoAmigoNome, criarAmigoTemporario, fluxo]);
 
-  // -------------------------------
   // CRIAR GRUPO
-  // -------------------------------
   const handleCriarGrupo = useCallback(async () => {
     if (!novoGrupo.trim()) {
       Alert.alert('Erro', 'O nome do grupo não pode estar vazio.');
@@ -132,7 +121,7 @@ const ConvidarAmigos = ({ navigation, route }) => {
       .filter((s) => s.tipo === 'amigo')
       .map((s) => {
         const item = amigosAll.find((a) => a.id === s.id);
-        return item?.id_usuario ?? item?.id;
+        return item?.id_usuario ?? item?.id!;
       });
     if (!amigosSelecionadosIDs.length) {
       Alert.alert('Atenção', 'Selecione pelo menos um amigo para criar um grupo.');
@@ -143,80 +132,59 @@ const ConvidarAmigos = ({ navigation, route }) => {
       setModalCriarVisible(false);
       setNovoGrupo('');
       setSelecionados([]);
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert('Erro ao criar grupo', error.message);
     }
   }, [novoGrupo, selecionados, criarGrupo, amigosAll, setSelecionados]);
 
-  // -------------------------------
   // EXCLUIR GRUPOS SELECIONADOS
-  // -------------------------------
   const excluirGruposSelecionados = useCallback(async () => {
     const gruposSelecionados = selecionados.filter((s) => s.tipo === 'grupo');
     if (!gruposSelecionados.length) {
       return Alert.alert('Atenção', 'Nenhum grupo selecionado para exclusão.');
     }
-    Alert.alert(
-      'Confirmar Exclusão',
-      'Tem certeza que deseja excluir todos os grupos selecionados?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              for (const sel of gruposSelecionados) {
-                await api.delete(`/api/groups/excluir/${sel.id}`);
-              }
-              await carregarDadosIniciais();
-              setSelecionados((prev) =>
-                prev.filter(
-                  (s) => s.tipo !== 'grupo' || !gruposSelecionados.some((g) => g.id === s.id)
-                )
-              );
-              Alert.alert('Sucesso', 'Grupos selecionados excluídos.');
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível excluir todos os grupos.');
+    Alert.alert('Confirmar Exclusão', 'Tem certeza que deseja excluir todos os grupos selecionados?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: async () => {
+          try {
+            for (const sel of gruposSelecionados) {
+              await api.delete(`/api/groups/excluir/${sel.id}`);
             }
-          },
-        },
-      ]
-    );
+            await carregarDadosIniciais();
+            setSelecionados((prev) => prev.filter(
+              (s) => s.tipo !== 'grupo' || !gruposSelecionados.some((g) => g.id === s.id)
+            ));
+            Alert.alert('Sucesso', 'Grupos selecionados excluídos.');
+          } catch {
+            Alert.alert('Erro', 'Não foi possível excluir todos os grupos.');
+          }
+        }
+      }
+    ]);
   }, [selecionados, carregarDadosIniciais, setSelecionados]);
 
-  // -------------------------------
-  // EXCLUIR GRUPO INDIVIDUAL
-  // -------------------------------
-  const confirmarExcluirGrupo = useCallback(
-    (idGrupo, nomeGrupo) => {
-      Alert.alert('Confirmar Exclusão', `Deseja excluir o grupo "${nomeGrupo}"?`, [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
+  // CONFIRMAR EXCLUSÃO DE UM GRUPO
+  const confirmarExcluirGrupo = useCallback((idGrupo: number, nomeGrupo: string) => {
+    Alert.alert('Confirmar Exclusão', `Deseja excluir o grupo "${nomeGrupo}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: async () => {
             try {
               await api.delete(`/api/groups/excluir/${idGrupo}`);
               await carregarDadosIniciais();
-              setSelecionados((prev) =>
-                prev.filter((s) => !(s.tipo === 'grupo' && s.id === idGrupo))
-              );
+              setSelecionados((prev) => prev.filter((s) => !(s.tipo === 'grupo' && s.id === idGrupo)));
               Alert.alert('Sucesso', 'Grupo excluído.');
-            } catch (error) {
+            } catch {
               Alert.alert('Erro', 'Não foi possível excluir o grupo.');
             }
-          },
-        },
-      ]);
-    },
-    [carregarDadosIniciais, setSelecionados]
-  );
+          }
+      }
+    ]);
+  }, [carregarDadosIniciais, setSelecionados]);
 
   // -------------------------------
   // EDITAR GRUPO
   // -------------------------------
-  const abrirEditarGrupo = useCallback((grupo) => {
+  const abrirEditarGrupo = useCallback((grupo: Grupo) => {
     setGrupoEditando(grupo);
     setNomeEditando(grupo.nome_grupo);
     setMembrosEditando(grupo.membros.map((m) => m.id));
@@ -227,6 +195,9 @@ const ConvidarAmigos = ({ navigation, route }) => {
   const salvarEdicaoGrupo = useCallback(async () => {
     if (!nomeEditando.trim()) {
       return Alert.alert('Erro', 'O nome do grupo não pode estar vazio.');
+    }
+    if (!grupoEditando?.id_grupo) {
+      return Alert.alert('Erro', 'Grupo inválido.');
     }
     try {
       await api.put(`/api/groups/editar/${grupoEditando.id_grupo}`, {
@@ -259,7 +230,7 @@ const ConvidarAmigos = ({ navigation, route }) => {
       return;
     }
 
-    let jogadoresSelecionados = [];
+    let jogadoresSelecionados: Amigo[] = [];
 
     // Monta lista de jogadores
     selecionados.forEach((sel) => {
@@ -272,7 +243,7 @@ const ConvidarAmigos = ({ navigation, route }) => {
           jogadoresSelecionados.push(a);
         }
       } else if (sel.tipo === 'grupo') {
-        const g = grupos.find((x) => x.id_grupo === sel.id);
+        const g = grupos.find((x) => x.id === sel.id);
         if (g) {
           jogadoresSelecionados = jogadoresSelecionados.concat(g.membros);
         }
@@ -297,6 +268,7 @@ const ConvidarAmigos = ({ navigation, route }) => {
       navigation.navigate('JogosFlow', {
         screen: 'ManualJogoScreen',
         params: {
+          amigosSelecionados: jogadoresSelecionados,
           players: jogadoresSelecionados,
           fluxo,
         },
@@ -323,17 +295,17 @@ const ConvidarAmigos = ({ navigation, route }) => {
   // -------------------------------
   // FUNÇÕES PARA O FLUXO "LISTA"
   // -------------------------------
-  const parseLista = (text) => {
+  const parseLista = (text: string): string[] => {
     return text
       .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line && (line.includes('✅') || line.includes('💰')))
-      .map((line) => {
+      .map((line: string) => line.trim())
+      .filter((line: string) => line && (line.includes('✅') || line.includes('💰')))
+      .map((line: string) => {
         let name = line.replace(/^[\d\s\-\.\)\:]+/, '');
         name = name.replace(/✅/g, '').replace(/💰/g, '');
         return name.trim();
       })
-      .filter((name) => name.length > 0);
+      .filter((name: string) => name.length > 0);
   };
 
   const handleProcessLista = () => {
@@ -346,14 +318,29 @@ const ConvidarAmigos = ({ navigation, route }) => {
   };
 
   const handleConfirmLista = () => {
-    const tempPlayers = listaParsedPlayers.map((name, index) => ({
-      id_usuario: -(index + 1000),
+    const defaultMinId = 0;
+    const minId = listaPlayers.length > 0 || selecionados.length > 0
+      ? Math.min(
+          defaultMinId,
+          ...listaPlayers.map((p) => p.id_usuario ?? defaultMinId),
+          ...selecionados.map((s) => (s.tipo === 'amigo' ? s.id : defaultMinId))
+        )
+      : defaultMinId;
+
+    const tempPlayers: TempAmigo[] = listaParsedPlayers.map((name, index) => ({
+      id_usuario: minId - (index + 1),
       nome: name,
       temporario: true,
     }));
-    setListaPlayers(tempPlayers);
-    const novosSelecionados = tempPlayers.map((p) => ({ tipo: 'amigo', id: p.id_usuario }));
-    setSelecionados((prev) => [...prev, ...novosSelecionados]);
+    
+    setListaPlayers(tempPlayers as unknown as Amigo[]);
+    
+    setSelecionados((prev) => {
+      const novos = tempPlayers
+        .map((p) => ({ tipo: 'amigo' as const, id: p.id_usuario }))
+        .filter((novo) => !prev.some((sel) => sel.tipo === 'amigo' && sel.id === novo.id));
+      return [...prev, ...novos];
+    });
     setShowListaModal(false);
     setListaPastedText('');
     setListaParsedPlayers([]);
@@ -573,7 +560,6 @@ const ConvidarAmigos = ({ navigation, route }) => {
           onRefresh={onRefresh}
           refreshing={refreshing}
           onDeleteSelected={excluirGruposSelecionados}
-          fluxo={fluxo}
         />
       ) : filtro === 'lista' ? (
         <View style={styles.listaContainer}>
@@ -611,7 +597,6 @@ const ConvidarAmigos = ({ navigation, route }) => {
           toggleSelecionado={toggleSelecionado}
           onRefresh={onRefresh}
           refreshing={refreshing}
-          fluxo={fluxo}
         />
       )}
 

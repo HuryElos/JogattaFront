@@ -150,18 +150,18 @@ function CustomTabBar({ state, descriptors, navigation }) {
   const tabPositions = useRef(new Array(state.routes.length).fill(0)).current;
   const tabBarWidth = Dimensions.get('window').width;
   const tabWidth = tabBarWidth / state.routes.length;
+  const bubbleWidth = 55; // Largura da bolinha
 
   // Animações
   const bubblePosition = useRef(new Animated.Value(tabWidth * 2)).current;
   const bubbleScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const offsetRight = 20;
-    const currentTabPosition = tabPositions[state.index] || tabWidth * state.index;
+    const currentTabPosition = (tabWidth - bubbleWidth) / 2 + (tabWidth * state.index);
 
     Animated.parallel([
       Animated.spring(bubblePosition, {
-        toValue: currentTabPosition + offsetRight,
+        toValue: currentTabPosition,
         tension: 70,
         friction: 10,
         useNativeDriver: true,
@@ -246,10 +246,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
                 ]}
                 resizeMode="contain"
               />
-            </View>
-            <Text style={[styles.tabLabel, isFocused ? styles.tabLabelActive : styles.tabLabelInactive]}>
+
+              <Text style={[styles.tabLabel, isFocused ? styles.tabLabelActive : styles.tabLabelInactive]}>
               {label}
             </Text>
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -318,12 +319,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 40,
     paddingTop: 10,
     paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-    justifyContent: 'space-around',
     alignItems: 'center',
-    height: Platform.OS === 'ios' ? 80 : 65,
     height: 75,
+    marginBottom: 0,
   },
   tabItem: {
+   
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -331,6 +332,7 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 12,
+    
     marginTop: 4,
   },
   tabLabelActive: {
@@ -342,33 +344,38 @@ const styles = StyleSheet.create({
   },
   animatedBubbleContainer: {
     position: 'absolute',
-    top: 0,
+    
+    top: 5,
     width: 55,
     height: 35,
     borderRadius: 50,
     overflow: 'hidden',
     zIndex: 1,
-    marginTop: 5,
   },
   specialTabButtonContainer: {
     width: 42,
     height: 42,
+    
     borderRadius: 21,
     overflow: 'hidden',
     backgroundColor: '#ffffff',
   },
   specialTabButton: {
     width: '100%',
+    
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconContainer: {
+    
     height: 24,
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconHidden: {
-    opacity: 0,
+    
+    opacity: 100,
   },
 });

@@ -1,23 +1,56 @@
-// src/screens/InviteHandlerScreen.js
-
 import React, { useEffect, useContext } from 'react';
-import { View, Text, ActivityIndicator, Alert } from 'react-native';
-import { useRoute, useNavigation, CommonActions } from '@react-navigation/native';
+import { View, Text, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { useRoute, useNavigation, CommonActions, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 import AuthContext from '../contexts/AuthContext';
 import jwtDecode from 'jwt-decode';
 
-const InviteHandlerScreen = () => {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const { user } = useContext(AuthContext);
+interface User {
+  id: number;
+  nome: string;
+  // Adicione outros campos do usuário conforme necessário
+}
+
+interface AuthContextType {
+  user: User | null;
+  // Adicione outros campos do contexto conforme necessário
+}
+
+interface DecodedToken {
+  exp: number;
+  id: number;
+  // Adicione outros campos do token conforme necessário
+}
+
+interface Convite {
+  id_jogo: number;
+  // Adicione outros campos do convite conforme necessário
+}
+
+type RootStackParamList = {
+  InviteHandler: { uuid?: string };
+  AppStack: undefined;
+  AuthStack: undefined;
+  HomeTab: undefined;
+  LiveRoom: { id_jogo: number };
+  Home: undefined;
+  Login: undefined;
+};
+
+type InviteHandlerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'InviteHandler'>;
+type InviteHandlerScreenRouteProp = RouteProp<RootStackParamList, 'InviteHandler'>;
+
+const InviteHandlerScreen: React.FC = () => {
+  const route = useRoute<InviteHandlerScreenRouteProp>();
+  const navigation = useNavigation<InviteHandlerScreenNavigationProp>();
+  const { user } = useContext(AuthContext as React.Context<AuthContextType>);
 
   const uuid = route.params?.uuid;
 
   useEffect(() => {
-    const processInvite = async () => {
-      // Se não tem UUID, simplesmente redireciona.
+    const processInvite = async (): Promise<void> => {
       if (!uuid) {
         return redirectToHome();
       }
@@ -30,7 +63,7 @@ const InviteHandlerScreen = () => {
           return redirectToLogin();
         }
 
-        const decodedToken = jwtDecode(token);
+        const decodedToken = jwtDecode<DecodedToken>(token);
 
         if (decodedToken.exp * 1000 < Date.now()) {
           Alert.alert('Sessão expirada', 'Sua sessão expirou. Por favor, faça login novamente.');
@@ -38,7 +71,7 @@ const InviteHandlerScreen = () => {
           return redirectToLogin();
         }
 
-        const response = await api.get(`/api/convites/${uuid}`, {
+        const response = await api.get<{ convite: Convite }>(`/api/convites/${uuid}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -69,7 +102,7 @@ const InviteHandlerScreen = () => {
         }
 
         throw new Error('Convite inválido.');
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro ao processar o convite:', error.response?.data || error.message);
 
         if (error.response?.status === 404) {
@@ -82,7 +115,7 @@ const InviteHandlerScreen = () => {
       }
     };
 
-    const redirectToHome = () => {
+    const redirectToHome = (): void => {
       if (user) {
         navigation.dispatch(
           CommonActions.reset({
@@ -107,7 +140,7 @@ const InviteHandlerScreen = () => {
       }
     };
 
-    const redirectToLogin = () => {
+    const redirectToLogin = (): void => {
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
@@ -124,14 +157,27 @@ const InviteHandlerScreen = () => {
     };
 
     processInvite();
-  }, [uuid, user]);
+  }, [uuid, user, navigation]);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={styles.container}>
       <ActivityIndicator size="large" color="#4A90E2" />
-      <Text>Validando convite...</Text>
+      <Text style={styles.text}>Validando convite...</Text>
     </View>
   );
 };
 
-export default InviteHandlerScreen;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+});
+
+export default InviteHandlerScreen; 

@@ -10,61 +10,250 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  Image
+  Image,
+  ViewStyle,
+  TextStyle,
+  ImageStyle,
+  StyleProp
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { register, registerCourtOwner } from '../../../features/auth/services/authService';
 import AuthContext from '../../../contexts/AuthContext';
-// Importa o CompanyContext para atualizar a empresa no cadastro do Gestor
 import CompanyContext from '../../../contexts/CompanyContext';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 
-const RegisterScreen = ({ navigation, route }) => {
+// Interfaces
+interface AuthContextType {
+  login: (email: string, password: string, role: UserRole) => Promise<boolean>;
+}
+
+interface CompanyContextType {
+  setCompany: (company: Company) => void;
+}
+
+interface RegisterScreenProps {
+  navigation: StackNavigationProp<any>;
+  route: RouteProp<any, any>;
+}
+
+interface RegisterResponse {
+  token: string;
+  empresa?: Company;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  // Adicione outros campos necessários da empresa
+}
+
+interface RegisterPlayerParams {
+  name: string;
+  email: string;
+  password: string;
+  tt: string;
+  altura: string;
+  role: 'player';
+  termsAccepted?: boolean;
+}
+
+interface RegisterCourtOwnerParams {
+  companyName: string;
+  email: string;
+  password: string;
+  cnpj: string;
+  phone: string;
+  address: string;
+}
+
+interface Styles {
+  container: ViewStyle;
+  safeArea: ViewStyle;
+  backButton: ViewStyle;
+  formContainer: ViewStyle;
+  scrollContent: ViewStyle;
+  inputGroup: ViewStyle;
+  inputIcon: TextStyle;
+  loginContainer: ViewStyle;
+  loginText: TextStyle;
+  switchRoleButton: ViewStyle;
+  buttonIcon: TextStyle;
+  toggleButton: ViewStyle;
+  input: TextStyle;
+}
+
+interface PlayerStyles {
+  headerGradient: ViewStyle;
+  headerContent: ViewStyle;
+  iconContainer: ViewStyle;
+  headerTitle: TextStyle;
+  headerSubtitle: TextStyle;
+  inputLabel: TextStyle;
+  inputWrapper: ViewStyle;
+  infoText: TextStyle;
+  registerButton: ViewStyle;
+  registerButtonGradient: ViewStyle;
+  registerButtonText: TextStyle;
+  loginLink: TextStyle;
+  switchRoleText: TextStyle;
+  loginButtonContainer: ViewStyle;
+  loginButton: ViewStyle;
+  buttonIcon: TextStyle;
+  loginButtonText: TextStyle;
+  termsContainer: ViewStyle;
+  checkbox: ViewStyle;
+  termsText: TextStyle;
+  termsLink: TextStyle;
+}
+
+interface CourtOwnerStyles {
+  headerGradient: ViewStyle;
+  headerContent: ViewStyle;
+  iconContainer: ViewStyle;
+  headerTitle: TextStyle;
+  headerSubtitle: TextStyle;
+  loginButtonContainer: ViewStyle;
+  loginButton: ViewStyle;
+  buttonIcon: TextStyle;
+  loginButtonText: TextStyle;
+  inputLabel: TextStyle;
+  inputWrapper: ViewStyle;
+  termsContainer: ViewStyle;
+  checkbox: ViewStyle;
+  termsText: TextStyle;
+  termsLink: TextStyle;
+  registerButton: ViewStyle;
+  disabledButton: ViewStyle;
+  registerButtonText: TextStyle;
+  loginLink: TextStyle;
+  switchRoleText: TextStyle;
+  formContainer: ViewStyle;
+}
+
+type UserRole = 'player' | 'courtOwner';
+
+const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, route }) => {
   const initialRole = route.params?.initialRole || 'player';
 
   // Estados para jogador
-  const [userRole, setUserRole] = useState(initialRole);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [tt, setTt] = useState('');
-  const [altura, setAltura] = useState('');
+  const [userRole, setUserRole] = useState<UserRole>(initialRole as UserRole);
+  const [name, setName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [tt, setTt] = useState<string>('');
+  const [altura, setAltura] = useState<string>('');
 
   // Estados para dono de quadra (Gestor)
-  const [companyName, setCompanyName] = useState('');
-  const [cnpj, setCnpj] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [companyName, setCompanyName] = useState<string>('');
+  const [cnpj, setCnpj] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
 
   // Estado para exibir/ocultar senha
-  const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const [secureTextEntry, setSecureTextEntry] = useState<boolean>(true);
 
-  // Obtém o login do contexto para salvar o token no AsyncStorage após o cadastro
-  const { login: loginContext } = useContext(AuthContext);
-  // Extrai o setCompany para atualizar o contexto com a nova empresa
-  const { setCompany } = useContext(CompanyContext);
+  // Adicione esta função após as outras declarações de estado
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
+
+  // Adicione o estado para termos do jogador após os outros estados
+  const [playerTermsAccepted, setPlayerTermsAccepted] = useState<boolean>(false);
+
+  // Contextos
+  const { login: loginContext } = useContext<AuthContextType>(AuthContext);
+  const { setCompany } = useContext<CompanyContextType>(CompanyContext);
 
   useEffect(() => {
     if (route.params?.initialRole) {
-      setUserRole(route.params.initialRole);
+      setUserRole(route.params.initialRole as UserRole);
     }
   }, [route.params]);
 
+  // Adicione esta função antes do return
+  const checkPasswordStrength = (pass: string) => {
+    if (!pass) {
+      setPasswordStrength(null);
+      return;
+    }
+    
+    const hasNumber = /\d/.test(pass);
+    const hasUpperCase = /[A-Z]/.test(pass);
+    const hasLowerCase = /[a-z]/.test(pass);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+    const isLongEnough = pass.length >= 8;
+
+    const strength = 
+      (hasNumber ? 1 : 0) +
+      (hasUpperCase ? 1 : 0) +
+      (hasLowerCase ? 1 : 0) +
+      (hasSpecialChar ? 1 : 0) +
+      (isLongEnough ? 1 : 0);
+
+    if (strength >= 4) {
+      setPasswordStrength('strong');
+    } else if (strength >= 2) {
+      setPasswordStrength('medium');
+    } else {
+      setPasswordStrength('weak');
+    }
+  };
+
+  // Adicione esta função após as outras funções de validação
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateName = (name: string): boolean => {
+    return name.trim().length >= 3; // Nome deve ter pelo menos 3 caracteres
+  };
+
+  const validateTT = (tt: string): boolean => {
+    return tt.trim().length >= 3; // TT deve ter pelo menos 3 caracteres
+  };
+
   // Função principal de cadastro
-  const handleRegister = async () => {
+  const handleRegister = async (): Promise<void> => {
     console.log('[RegisterScreen] handleRegister iniciado. userRole:', userRole);
 
     if (userRole === 'player') {
-      // Validações específicas de jogador
+      // Validações melhoradas
       if (!name || !email || !password || !tt || !altura) {
         Alert.alert('Campos Obrigatórios', 'Por favor, preencha todos os campos.');
         return;
       }
+
+      if (!validateName(name)) {
+        Alert.alert('Nome Inválido', 'O nome deve ter pelo menos 3 caracteres.');
+        return;
+      }
+
+      if (!validateEmail(email)) {
+        Alert.alert('E-mail Inválido', 'Por favor, insira um e-mail válido.');
+        return;
+      }
+
+      if (!validateTT(tt)) {
+        Alert.alert('TT Inválido', 'O TT deve ter pelo menos 3 caracteres.');
+        return;
+      }
+
+      if (password.length < 6) {
+        Alert.alert('Senha Fraca', 'A senha deve ter pelo menos 6 caracteres.');
+        return;
+      }
+
       const numericAltura = parseFloat(altura);
-      if (numericAltura > 2.51) {
-        Alert.alert('Você é tão alto assim?', 'A altura máxima permitida é 2.51m.');
+      if (isNaN(numericAltura) || numericAltura < 1.0 || numericAltura > 2.51) {
+        Alert.alert('Altura Inválida', 'Por favor, insira uma altura válida entre 1.00m e 2.51m.');
+        return;
+      }
+
+      if (!playerTermsAccepted) {
+        Alert.alert('Termos de Uso', 'Você precisa aceitar os Termos de Uso para continuar.');
         return;
       }
 
@@ -72,12 +261,22 @@ const RegisterScreen = ({ navigation, route }) => {
         console.log('[RegisterScreen] Iniciando cadastro PLAYER com dados:', {
           name,
           email,
-          password,
+          password: '********', // Não logue a senha
           tt,
           altura,
           role: 'player'
         });
-        const response = await register(name, email, password, tt, altura, 'player');
+
+        const playerParams: RegisterPlayerParams = {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+          tt: tt.trim(),
+          altura,
+          role: 'player'
+        };
+
+        const response: RegisterResponse = await register(playerParams);
         console.log('[RegisterScreen] Resposta da função register (PLAYER):', response);
 
         if (response && response.token) {
@@ -103,14 +302,16 @@ const RegisterScreen = ({ navigation, route }) => {
           );
         } else {
           console.log('[RegisterScreen] PLAYER - Sem token na resposta ou registro falhou.');
-          Alert.alert('Erro', 'Registro falhou. Tente novamente.');
+          Alert.alert('Erro', 'Registro falhou. Por favor, tente novamente.');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.log('[RegisterScreen] Erro no registro PLAYER:', error);
-        Alert.alert('Erro', 'Não foi possível completar o registro. Tente novamente.');
+        Alert.alert(
+          'Erro no Cadastro',
+          error.message || 'Não foi possível completar o registro. Por favor, tente novamente.'
+        );
       }
     } else {
-      // Validações para dono de quadra (Gestor)
       if (!companyName || !email || !password || !confirmPassword || !cnpj || !phone || !address) {
         Alert.alert('Campos Obrigatórios', 'Por favor, preencha todos os campos.');
         return;
@@ -124,7 +325,6 @@ const RegisterScreen = ({ navigation, route }) => {
         return;
       }
 
-      // Checa se o CNPJ está no formato XX.XXX.XXX/XXXX-XX
       const cnpjRegex = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/;
       if (!cnpjRegex.test(cnpj)) {
         Alert.alert('CNPJ Inválido', 'Digite um CNPJ no formato XX.XXX.XXX/XXXX-XX');
@@ -138,11 +338,17 @@ const RegisterScreen = ({ navigation, route }) => {
           password,
           cnpj,
           phone,
-          address,
-          confirmPassword,
-          termsAccepted
+          address
         });
-        const response = await registerCourtOwner(companyName, email, password, cnpj, phone, address);
+        const courtOwnerParams: RegisterCourtOwnerParams = {
+          companyName,
+          email,
+          password,
+          cnpj,
+          phone,
+          address
+        };
+        const response: RegisterResponse = await registerCourtOwner(courtOwnerParams);
         console.log('[RegisterScreen] Resposta da função registerCourtOwner (GESTOR):', response);
 
         if (response && response.token) {
@@ -150,7 +356,6 @@ const RegisterScreen = ({ navigation, route }) => {
           const loginSuccess = await loginContext(email, password, 'courtOwner');
           console.log('[RegisterScreen] GESTOR - loginSuccess:', loginSuccess);
 
-          // Atualiza o contexto da empresa se a resposta possuir empresa
           if (response.empresa) {
             console.log('[RegisterScreen] Atualizando company context para a nova empresa =>', response.empresa);
             setCompany(response.empresa);
@@ -184,15 +389,15 @@ const RegisterScreen = ({ navigation, route }) => {
   };
 
   // Toggle do papel
-  const toggleUserRole = () => {
-    const newRole = userRole === 'player' ? 'courtOwner' : 'player';
+  const toggleUserRole = (): void => {
+    const newRole: UserRole = userRole === 'player' ? 'courtOwner' : 'player';
     setUserRole(newRole);
     setEmail('');
     setPassword('');
   };
 
   // Formatações de campo
-  const formatHeight = (text) => {
+  const formatHeight = (text: string): string => {
     let formattedText = text.replace(/[^0-9]/g, '');
     if (formattedText.length > 2) {
       formattedText = formattedText.slice(0, -2) + '.' + formattedText.slice(-2);
@@ -200,7 +405,7 @@ const RegisterScreen = ({ navigation, route }) => {
     return formattedText;
   };
 
-  const formatCNPJ = (text) => {
+  const formatCNPJ = (text: string): string => {
     const numbers = text.replace(/\D/g, '');
     let formatted = '';
     if (numbers.length <= 2) {
@@ -217,7 +422,7 @@ const RegisterScreen = ({ navigation, route }) => {
     return formatted;
   };
 
-  const formatPhone = (text) => {
+  const formatPhone = (text: string): string => {
     const numbers = text.replace(/\D/g, '');
     let formatted = '';
     if (numbers.length <= 2) {
@@ -230,42 +435,43 @@ const RegisterScreen = ({ navigation, route }) => {
     return formatted;
   };
 
-  // Layouts específicos para cada papel
-  const PlayerHeader = () => (
+  // Componentes
+  const PlayerHeader: React.FC = () => (
     <LinearGradient
       colors={['#1A91DA', '#37A0EC', '#59B0FA']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
       style={playerStyles.headerGradient}
     >
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color="#FFF" />
-      </TouchableOpacity>
       <View style={playerStyles.headerContent}>
-        <Image style={playerStyles.headerIcon} resizeMode="contain" />
+        <View style={playerStyles.iconContainer}>
+          <Ionicons name="football" size={40} color="#37A0EC" />
+        </View>
         <Text style={playerStyles.headerTitle}>Bom te conhecer!</Text>
-        <Text style={playerStyles.headerSubtitle}>Vamos começar a jogar!</Text>
+        <Text style={playerStyles.headerSubtitle}>Vamos começar sua jornada no Jogatta</Text>
       </View>
     </LinearGradient>
   );
 
-  const CourtOwnerHeader = () => (
+  const CourtOwnerHeader: React.FC = () => (
     <LinearGradient
-      colors={['#37424E', '#425062', '#4A5871']}
+      colors={['#FF5414', '#FF7014', '#FF8A3D']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
       style={courtOwnerStyles.headerGradient}
     >
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color="#FFF" />
-      </TouchableOpacity>
+     
       <View style={courtOwnerStyles.headerContent}>
         <View style={courtOwnerStyles.iconContainer}>
-          <Ionicons name="calendar-outline" size={32} color="#FF7014" />
+          <Ionicons name="business-outline" size={40} color="#FF7014" />
         </View>
         <Text style={courtOwnerStyles.headerTitle}>Jogatta Gestor</Text>
-        <Text style={courtOwnerStyles.headerSubtitle}>Cadastre suas quadras e comece a receber</Text>
+        <Text style={courtOwnerStyles.headerSubtitle}>Gerencie suas quadras</Text>
       </View>
     </LinearGradient>
   );
 
-  const PlayerLoginButton = () => (
+  const PlayerLoginButton: React.FC = () => (
     <TouchableOpacity
       style={playerStyles.loginButtonContainer}
       onPress={handleRegister}
@@ -283,7 +489,7 @@ const RegisterScreen = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
-  const CourtOwnerLoginButton = () => (
+  const CourtOwnerLoginButton: React.FC = () => (
     <TouchableOpacity
       style={courtOwnerStyles.loginButtonContainer}
       onPress={handleRegister}
@@ -307,6 +513,7 @@ const RegisterScreen = ({ navigation, route }) => {
       style={styles.container}
     >
       <SafeAreaView style={styles.safeArea}>
+        
         {userRole === 'player' ? <PlayerHeader /> : <CourtOwnerHeader />}
         <View
           style={[
@@ -320,112 +527,170 @@ const RegisterScreen = ({ navigation, route }) => {
           >
             {userRole === 'player' ? (
               <>
-                {/* CAMPOS DE JOGADOR */}
-                <View style={styles.inputGroup}>
+                <View style={[styles.inputGroup, { marginBottom: 20 }]}>
                   <Text style={playerStyles.inputLabel}>Nome Completo</Text>
-                  <View style={playerStyles.inputWrapper}>
-                    <Ionicons name="person-outline" size={20} color="#37A0EC" style={styles.inputIcon} />
+                  <View style={[playerStyles.inputWrapper, { borderColor: name ? '#37A0EC' : '#E0E7FF' }]}>
+                    <Ionicons name="person-outline" size={22} color="#37A0EC" style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { fontSize: 16 }]}
                       value={name}
                       onChangeText={setName}
                       placeholder="Digite seu nome completo"
-                      placeholderTextColor="#999"
+                      placeholderTextColor="#94A3B8"
+                      autoCapitalize="words"
                     />
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={[styles.inputGroup, { marginBottom: 20 }]}>
                   <Text style={playerStyles.inputLabel}>E-mail</Text>
-                  <View style={playerStyles.inputWrapper}>
-                    <Ionicons name="mail-outline" size={20} color="#37A0EC" style={styles.inputIcon} />
+                  <View style={[playerStyles.inputWrapper, { borderColor: email ? '#37A0EC' : '#E0E7FF' }]}>
+                    <Ionicons name="mail-outline" size={22} color="#37A0EC" style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { fontSize: 16 }]}
                       value={email}
                       onChangeText={setEmail}
-                      placeholder="Digite seu e-mail"
+                      placeholder="Digite seu melhor e-mail"
+                      placeholderTextColor="#94A3B8"
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      placeholderTextColor="#999"
                     />
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={[styles.inputGroup, { marginBottom: 20 }]}>
                   <Text style={playerStyles.inputLabel}>Senha</Text>
-                  <View style={playerStyles.inputWrapper}>
-                    <Ionicons name="lock-closed-outline" size={20} color="#37A0EC" style={styles.inputIcon} />
+                  <View style={[
+                    playerStyles.inputWrapper, 
+                    { 
+                      borderColor: passwordStrength === 'strong' ? '#10B981' : 
+                                  passwordStrength === 'medium' ? '#F59E0B' :
+                                  passwordStrength === 'weak' ? '#EF4444' :
+                                  '#E0E7FF'
+                    }
+                  ]}>
+                    <Ionicons 
+                      name="lock-closed-outline" 
+                      size={22} 
+                      color={
+                        passwordStrength === 'strong' ? '#10B981' : 
+                        passwordStrength === 'medium' ? '#F59E0B' :
+                        passwordStrength === 'weak' ? '#EF4444' :
+                        '#37A0EC'
+                      } 
+                      style={styles.inputIcon} 
+                    />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { fontSize: 16 }]}
                       value={password}
-                      onChangeText={setPassword}
-                      placeholder="Digite sua senha"
+                      onChangeText={(text) => {
+                        setPassword(text);
+                        checkPasswordStrength(text);
+                      }}
+                      placeholder="Crie uma senha segura"
+                      placeholderTextColor="#94A3B8"
                       secureTextEntry={secureTextEntry}
-                      placeholderTextColor="#999"
+                      textContentType="newPassword"
+                      autoComplete="off"
+                      autoCapitalize="none"
                     />
                     <TouchableOpacity
                       onPress={() => setSecureTextEntry(!secureTextEntry)}
-                      style={styles.toggleButton}
+                      style={[styles.toggleButton, { padding: 8 }]}
                     >
                       <Ionicons
                         name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
                         size={22}
-                        color="#37A0EC"
+                        color={
+                          passwordStrength === 'strong' ? '#10B981' : 
+                          passwordStrength === 'medium' ? '#F59E0B' :
+                          passwordStrength === 'weak' ? '#EF4444' :
+                          '#37A0EC'
+                        }
                       />
                     </TouchableOpacity>
                   </View>
+                  {password && (
+                    <Text style={[
+                      playerStyles.infoText,
+                      { 
+                        color: passwordStrength === 'strong' ? '#10B981' : 
+                               passwordStrength === 'medium' ? '#F59E0B' :
+                               '#EF4444',
+                        marginTop: 8
+                      }
+                    ]}>
+                      {passwordStrength === 'strong' ? '✓ Senha forte!' :
+                       passwordStrength === 'medium' ? '⚠️ Senha média - adicione mais caracteres especiais' :
+                       '⚠️ Senha fraca - use letras, números e caracteres especiais'}
+                    </Text>
+                  )}
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={[styles.inputGroup, { marginBottom: 20 }]}>
                   <Text style={playerStyles.inputLabel}>Seu TT</Text>
-                  <View style={playerStyles.inputWrapper}>
-                    <Ionicons name="at-outline" size={20} color="#37A0EC" style={styles.inputIcon} />
+                  <View style={[playerStyles.inputWrapper, { borderColor: tt ? '#37A0EC' : '#E0E7FF' }]}>
+                    <Ionicons name="at-outline" size={22} color="#37A0EC" style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { fontSize: 16 }]}
                       value={tt}
                       onChangeText={setTt}
                       placeholder="Crie seu TT único"
-                      placeholderTextColor="#999"
+                      placeholderTextColor="#94A3B8"
                     />
                   </View>
                   <Text style={playerStyles.infoText}>
-                    TT é o seu identificador único no Jogatta
+                    TT é seu identificador único no Jogatta, escolha com cuidado!
                   </Text>
                 </View>
 
-                <View style={styles.inputGroup}>
+                <View style={[styles.inputGroup, { marginBottom: 25 }]}>
                   <Text style={playerStyles.inputLabel}>Altura (m)</Text>
-                  <View style={playerStyles.inputWrapper}>
-                    <Ionicons name="resize-outline" size={20} color="#37A0EC" style={styles.inputIcon} />
+                  <View style={[playerStyles.inputWrapper, { borderColor: altura ? '#37A0EC' : '#E0E7FF' }]}>
+                    <Ionicons name="resize-outline" size={22} color="#37A0EC" style={styles.inputIcon} />
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { fontSize: 16 }]}
                       value={altura}
                       onChangeText={(text) => setAltura(formatHeight(text))}
                       placeholder="Ex.: 1.75"
+                      placeholderTextColor="#94A3B8"
                       keyboardType="decimal-pad"
-                      placeholderTextColor="#999"
                     />
                   </View>
                 </View>
 
                 <TouchableOpacity
-                  style={playerStyles.registerButton}
+                  style={playerStyles.termsContainer}
+                  onPress={() => setPlayerTermsAccepted(!playerTermsAccepted)}
+                  activeOpacity={0.7}
+                >
+                  <View style={playerStyles.checkbox}>
+                    {playerTermsAccepted && <Ionicons name="checkmark" size={18} color="#37A0EC" />}
+                  </View>
+                  <Text style={playerStyles.termsText}>
+                    Li e aceito os <Text style={playerStyles.termsLink}>Termos de Uso</Text> do Jogatta.
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[playerStyles.registerButton, !playerTermsAccepted && { opacity: 0.6, backgroundColor: '#94A3B8' }]}
                   onPress={handleRegister}
+                  disabled={!playerTermsAccepted}
+                  activeOpacity={0.9}
                 >
                   <LinearGradient
-                    colors={['#FF7014', '#FF8A3D', '#FF7014']}
+                    colors={['#FF5414', '#FF7014', '#FF8A3D']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={playerStyles.registerButtonGradient}
                   >
-                    <Ionicons name="football-outline" size={20} color="#FFF" style={styles.buttonIcon} />
+                    <Ionicons name="football-outline" size={24} color="#FFF" style={{ marginRight: 10 }} />
                     <Text style={playerStyles.registerButtonText}>Cadastrar Jogador</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                {/* CAMPOS DE DONO DE QUADRA */}
                 <View style={styles.inputGroup}>
                   <Text style={courtOwnerStyles.inputLabel}>Nome da Empresa</Text>
                   <View style={courtOwnerStyles.inputWrapper}>
@@ -548,7 +813,7 @@ const RegisterScreen = ({ navigation, route }) => {
                   activeOpacity={0.7}
                 >
                   <View style={courtOwnerStyles.checkbox}>
-                    {termsAccepted && <Ionicons name="checkmark" size={18} color="#FF7014" />}
+                    {termsAccepted && <Ionicons name="checkmark" size={18} color="#3498DB" />}
                   </View>
                   <Text style={courtOwnerStyles.termsText}>
                     Li e aceito os <Text style={courtOwnerStyles.termsLink}>Termos de Uso</Text> do Jogatta Gestor.
@@ -560,8 +825,15 @@ const RegisterScreen = ({ navigation, route }) => {
                   onPress={handleRegister}
                   disabled={!termsAccepted}
                 >
-                  <Ionicons name="checkmark-circle-outline" size={22} color="#FF7014" style={styles.buttonIcon} />
-                  <Text style={courtOwnerStyles.registerButtonText}>Cadastrar Estabelecimento</Text>
+                  <LinearGradient
+                    colors={['#1A91DA', '#37A0EC', '#59B0FA']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={playerStyles.registerButtonGradient}
+                  >
+                    <Ionicons name="checkmark-circle-outline" size={24} color="#FFF" style={{ marginRight: 10 }} />
+                    <Text style={courtOwnerStyles.registerButtonText}>Cadastrar Estabelecimento</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </>
             )}
@@ -587,33 +859,35 @@ const RegisterScreen = ({ navigation, route }) => {
   );
 };
 
-export default RegisterScreen;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  safeArea: { flex: 1 },
+const styles = StyleSheet.create<Styles>({
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FFF' 
+  },
+  safeArea: { 
+    flex: 1,
+  
+  },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 40,
-    left: 20,
-    zIndex: 10,
+
   },
   formContainer: {
     flex: 1,
     backgroundColor: '#FFF',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    marginTop: -25,
+    marginTop: -80,
   },
-  scrollContent: { padding: 25, paddingBottom: 40 },
-  inputGroup: { marginBottom: 16 },
-  inputIcon: { paddingHorizontal: 12 },
+  scrollContent: { 
+    padding: 25, 
+    paddingBottom: 40 
+  },
+  inputGroup: { 
+    marginBottom: 16 
+  },
+  inputIcon: { 
+    paddingHorizontal: 12 
+  },
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -621,7 +895,10 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     marginTop: 10,
   },
-  loginText: { color: '#777', fontSize: 15 },
+  loginText: { 
+    color: '#777', 
+    fontSize: 15 
+  },
   switchRoleButton: {
     alignItems: 'center',
     paddingVertical: 12,
@@ -629,106 +906,122 @@ const styles = StyleSheet.create({
     borderTopColor: '#E0E0E0',
     marginTop: 5,
   },
-  buttonIcon: { marginRight: 8 },
-  toggleButton: { paddingHorizontal: 10, paddingVertical: 8 },
+  buttonIcon: { 
+    marginRight: 8 
+  },
+  toggleButton: { 
+    paddingHorizontal: 10, 
+    paddingVertical: 8 
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    color: '#333',
+    fontSize: 16,
+  },
 });
 
-const playerStyles = StyleSheet.create({
+const playerStyles = StyleSheet.create<PlayerStyles>({
+  
   headerGradient: {
-    height: 200,
-    justifyContent: 'center',
+    height:  300,
+    top: 0,
     alignItems: 'center',
     paddingTop: Platform.OS === 'ios' ? 20 : 0,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  headerContent: { alignItems: 'center', paddingHorizontal: 30 },
-  headerIcon: { width: 60, height: 60, marginBottom: 10 },
+  headerContent: { 
+    alignItems: 'center', 
+    paddingHorizontal: 30,
+    top: 20,
+    
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+
+  },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFF',
     textAlign: 'center',
-    marginBottom: 5,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 17,
+    color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'center',
+    maxWidth: '80%',
+    lineHeight: 24
   },
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#2C3E50',
     marginBottom: 8,
     paddingLeft: 5,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E9F0',
-    borderRadius: 12,
-    backgroundColor: '#F8F8F8',
+    borderWidth: 1.5,
+    borderColor: '#E0E7FF',
+    borderRadius: 15,
+    backgroundColor: '#F8FAFF',
+    height: 56,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  infoText: { fontSize: 12, color: '#777', marginTop: 5, paddingLeft: 5 },
+  infoText: { 
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 6,
+    paddingLeft: 5,
+    fontStyle: 'italic'
+  },
   registerButton: {
-    borderRadius: 12,
+    borderRadius: 15,
     overflow: 'hidden',
-    marginTop: 10,
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 25,
     shadowColor: '#FF7014',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowRadius: 5,
     elevation: 8,
   },
   registerButtonGradient: {
-    height: 55,
+    height: 58,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   registerButtonText: {
     color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  loginLink: { color: '#37A0EC', fontSize: 15, fontWeight: '600' },
-  switchRoleText: { color: '#37A0EC', fontSize: 15, fontWeight: '500' },
-});
-
-const courtOwnerStyles = StyleSheet.create({
-  headerGradient: {
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 20 : 0,
-  },
-  headerContent: { alignItems: 'center', paddingHorizontal: 30 },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#FFF',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   loginButtonContainer: {
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 5,
     elevation: 3,
@@ -738,60 +1031,235 @@ const courtOwnerStyles = StyleSheet.create({
     shadowRadius: 4,
   },
   loginButton: {
-    height: 52,
+    height: 54,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    borderRadius: 10,
+    borderRadius: 12,
   },
-  buttonIcon: { marginRight: 10 },
+  buttonIcon: { 
+    marginRight: 12 
+  },
   loginButtonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
-  inputLabel: { color: '#4A5871', fontWeight: '600' },
-  inputWrapper: { borderColor: '#DDE1E6', backgroundColor: '#F7F9FC' },
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: 16,
+    backgroundColor: '#F8FAFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E0E7FF',
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     borderWidth: 2,
-    borderColor: '#FF7014',
-    borderRadius: 4,
-    marginRight: 8,
+    borderColor: '#37A0EC',
+    borderRadius: 6,
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFF',
   },
   termsText: {
-    color: '#4A5871',
+    color: '#2C3E50',
     flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
   termsLink: {
     color: '#FF7014',
     textDecorationLine: 'underline',
+    fontWeight: '600',
   },
-  registerButton: {
+  loginLink: { 
+    color: '#FF7014',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  switchRoleText: { 
+    color: '#FF7014',
+    fontSize: 15,
+    fontWeight: '500',
+    opacity: 0.9
+  }
+});
+
+const courtOwnerStyles = StyleSheet.create<CourtOwnerStyles>({
+  
+  headerGradient: {
+    height:  300,
+    top: 0,
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 20 : 0,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: { 
+    alignItems: 'center', 
+    paddingHorizontal: 30,
+    top: 20,
+    
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4
+  },
+  headerSubtitle: {
+    fontSize: 17,
+    color: 'rgba(255, 255, 255, 0.95)',
+    textAlign: 'center',
+    maxWidth: '80%',
+    lineHeight: 24
+  },
+  loginButtonContainer: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 5,
+    elevation: 3,
+    shadowColor: '#37A0EC',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  loginButton: {
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    borderRadius: 15,
+  },
+  buttonIcon: { 
+    marginRight: 12 
+  },
+  loginButtonText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 8,
+    paddingLeft: 5,
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    borderWidth: 1.5,
+    borderColor: '#E0E7FF',
+    borderRadius: 15,
+    backgroundColor: '#F8FAFF',
+    height: 56,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+    backgroundColor: '#F8FAFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E0E7FF',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
     borderWidth: 2,
     borderColor: '#FF7014',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 8,
+    borderRadius: 6,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
   },
-  disabledButton: { opacity: 0.5 },
-  registerButtonText: {
-    color: '#FF7014',
+  termsText: {
+    color: '#2C3E50',
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: '#37A0EC',
+    textDecorationLine: 'underline',
     fontWeight: '600',
-    fontSize: 16,
   },
-  loginLink: { color: '#FF7014' },
-  switchRoleText: { color: '#FF7014' },
+  registerButton: {
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginTop: 20,
+    marginBottom: 25,
+    shadowColor: '#37A0EC',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  disabledButton: { 
+    opacity: 0.6,
+    backgroundColor: '#94A3B8',
+  },
+  registerButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  loginLink: { 
+    color: '#37A0EC',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  switchRoleText: { 
+    color: '#37A0EC',
+    fontSize: 15,
+    fontWeight: '500',
+    opacity: 0.9
+  },
+  formContainer: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -80,
+    paddingTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
 });
+
+export default RegisterScreen; 

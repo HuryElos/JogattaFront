@@ -1,25 +1,37 @@
-// src/features/amigos/screens/ListarAmigos.js
-
-// Descrição:
-// Esta tela exibe uma lista de amigos associados ao usuário logado.
-// Carrega os dados do backend, validando o token do usuário, e lista os amigos com nome e e-mail.
-
-// Relacionamentos:
-// - Utiliza o serviço `listarAmigos` de `authService` para buscar os dados do backend.
-// - Valida o token do usuário com `AsyncStorage` e `jwtDecode`.
-// - Navega para a tela `Login` caso o token seja inválido ou ausente.
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
-import { listarAmigos } from '../../../services/authService'; // Importa a função de serviço
+import { StackNavigationProp } from '@react-navigation/stack';
+import { listarAmigos } from '../../../features/auth/services/authService';
 
-const ListarAmigos = ({ navigation }) => {
-  const [amigos, setAmigos] = useState([]);
+interface Amigo {
+  id: number;
+  nome: string;
+  email: string;
+}
+
+interface DecodedToken {
+  id: number;
+  // Adicione outros campos do token conforme necessário
+}
+
+type RootStackParamList = {
+  ListarAmigos: undefined;
+  Login: undefined;
+};
+
+type ListarAmigosScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ListarAmigos'>;
+
+interface ListarAmigosProps {
+  navigation: ListarAmigosScreenNavigationProp;
+}
+
+const ListarAmigos: React.FC<ListarAmigosProps> = ({ navigation }) => {
+  const [amigos, setAmigos] = useState<Amigo[]>([]);
 
   useEffect(() => {
-    const fetchAmigos = async () => {
+    const fetchAmigos = async (): Promise<void> => {
       try {
         const token = await AsyncStorage.getItem('token');
         if (!token) {
@@ -28,7 +40,7 @@ const ListarAmigos = ({ navigation }) => {
           return;
         }
 
-        const decodedToken = jwtDecode(token);
+        const decodedToken = jwtDecode<DecodedToken>(token);
         const organizador_id = decodedToken.id;
         console.log('Organizador ID recebido:', organizador_id);
 
@@ -42,7 +54,7 @@ const ListarAmigos = ({ navigation }) => {
     };
 
     fetchAmigos();
-  }, []);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
@@ -80,4 +92,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ListarAmigos;
+export default ListarAmigos; 
