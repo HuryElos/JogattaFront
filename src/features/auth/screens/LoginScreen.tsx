@@ -53,6 +53,36 @@ interface AuthContextType {
   user: User | null;
 }
 
+const PlayerHeader: React.FC = () => (
+  <View style={playerStyles.header}>
+    <LinearGradient
+      colors={['#37A0EC', '#66B0F2', '#80C0F7']}
+      style={playerStyles.headerGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <Image style={playerStyles.ballIcon} resizeMode="contain" />
+      <Text style={playerStyles.title}>Bem-vindo de volta!</Text>
+      <Text style={playerStyles.subtitle}>Pronto para organizar seu próximo jogo?</Text>
+    </LinearGradient>
+  </View>
+);
+
+const CourtOwnerHeader: React.FC = () => (
+  <View style={courtOwnerStyles.header}>
+    <LinearGradient
+      colors={['#FF7014', '#FF8A3D', '#FF7014']}
+      style={courtOwnerStyles.headerGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <Image style={courtOwnerStyles.courtIcon} resizeMode="contain" />
+      <Text style={courtOwnerStyles.title}>Área do Gestor</Text>
+      <Text style={courtOwnerStyles.subtitle}>Gerencie suas quadras e horários</Text>
+    </LinearGradient>
+  </View>
+);
+
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
   const initialUserRole = route.params?.initialRole || 'player';
 
@@ -182,145 +212,121 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, route }) => {
     setPassword('');
   };
 
-  const PlayerHeader: React.FC = () => (
-    <View style={playerStyles.header}>
-      <LinearGradient
-        colors={['#4D9FEC', '#66B0F2', '#80C0F7']}
-        style={playerStyles.headerGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Image style={playerStyles.ballIcon} resizeMode="contain" />
-        <Text style={playerStyles.title}>Bem-vindo de volta!</Text>
-        <Text style={playerStyles.subtitle}>Pronto para organizar seu próximo jogo?</Text>
-      </LinearGradient>
-    </View>
-  );
-
-  const PlayerLoginButton: React.FC = () => (
-    <TouchableOpacity
-      style={playerStyles.loginButtonContainer}
-      onPress={handleLogin}
-      activeOpacity={0.9}
-    >
-      <LinearGradient
-        colors={['#FF7014', '#FF8A3D', '#FF7014']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={playerStyles.loginButton}
-      >
-        <Ionicons name="football-outline" size={22} color="#FFF" style={playerStyles.buttonIcon} />
-        <Text style={playerStyles.loginButtonText}>Entrar como Jogador</Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-
-  const CourtOwnerHeader: React.FC = () => (
-    <View style={courtOwnerStyles.header}>
-      <LinearGradient
-        colors={['#FF7014', '#FF8A3D', '#FF7014']}
-        style={courtOwnerStyles.headerGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Image style={courtOwnerStyles.courtIcon} resizeMode="contain" />
-        <Text style={courtOwnerStyles.title}>Área do Gestor</Text>
-        <Text style={courtOwnerStyles.subtitle}>Gerencie suas quadras e horários</Text>
-      </LinearGradient>
-    </View>
-  );
-
-  const CourtOwnerLoginButton: React.FC = () => (
-    <TouchableOpacity
-      style={courtOwnerStyles.loginButtonContainer}
-      onPress={handleLogin}
-      activeOpacity={0.9}
-    >
-      <LinearGradient
-        colors={['#4D9FEC', '#66B0F2', '#80C0F7']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={courtOwnerStyles.loginButton}
-      >
-        <Ionicons name="business-outline" size={22} color="#FFF" style={courtOwnerStyles.buttonIcon} />
-        <Text style={courtOwnerStyles.loginButtonText}>Entrar como Gestor</Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {userRole === 'player' ? <PlayerHeader /> : <CourtOwnerHeader />}
-          
-          <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Senha"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={secureTextEntry}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setSecureTextEntry(!secureTextEntry)}
-              >
-                <Ionicons
-                  name={secureTextEntry ? 'eye-off-outline' : 'eye-outline'}
-                  size={24}
-                  color="#666"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        {userRole === 'player' ? <PlayerHeader /> : <CourtOwnerHeader />}
+        <View
+          style={[
+            styles.formContainer,
+            userRole === 'courtOwner' && courtOwnerStyles.formContainer
+          ]}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View style={styles.inputGroup}>
+              <Text style={userRole === 'player' ? playerStyles.inputLabel : courtOwnerStyles.inputLabel}>
+                E-mail
+              </Text>
+              <View style={userRole === 'player' ? playerStyles.inputWrapper : courtOwnerStyles.inputWrapper}>
+                <Ionicons 
+                  name="mail-outline" 
+                  size={22} 
+                  color={userRole === 'player' ? '#37A0EC' : '#FF7014'} 
+                  style={styles.inputIcon} 
                 />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Digite seu e-mail"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={userRole === 'player' ? playerStyles.inputLabel : courtOwnerStyles.inputLabel}>
+                Senha
+              </Text>
+              <View style={userRole === 'player' ? playerStyles.inputWrapper : courtOwnerStyles.inputWrapper}>
+                <Ionicons 
+                  name="lock-closed-outline" 
+                  size={22} 
+                  color={userRole === 'player' ? '#37A0EC' : '#FF7014'} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Digite sua senha"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={secureTextEntry}
+                  placeholderTextColor="#94A3B8"
+                />
+                <TouchableOpacity
+                  onPress={() => setSecureTextEntry(!secureTextEntry)}
+                  style={styles.toggleButton}
+                >
+                  <Ionicons
+                    name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                    size={22}
+                    color={userRole === 'player' ? '#37A0EC' : '#FF7014'}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                userRole === 'player' ? playerStyles.loginButtonContainer : courtOwnerStyles.loginButtonContainer,
+                { marginTop: 20 }
+              ]}
+              onPress={handleLogin}
+            >
+              <LinearGradient
+                colors={userRole === 'player' ? ['#37A0EC', '#66B0F2', '#80C0F7'] : ['#FF7014', '#FF8A3D', '#FF7014']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={userRole === 'player' ? playerStyles.loginButton : courtOwnerStyles.loginButton}
+              >
+                <Ionicons 
+                  name={userRole === 'player' ? 'football-outline' : 'business-outline'} 
+                  size={24} 
+                  color="#FFF" 
+                  style={{ marginRight: 10 }} 
+                />
+                <Text style={userRole === 'player' ? playerStyles.loginButtonText : courtOwnerStyles.loginButtonText}>
+                  {userRole === 'player' ? 'Entrar como Jogador' : 'Entrar como Gestor'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.registerContainer}>
+              <Text style={styles.registerText}>Não tem uma conta? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register', { initialRole: userRole })}>
+                <Text style={userRole === 'player' ? playerStyles.registerLink : courtOwnerStyles.registerLink}>
+                  Cadastre-se
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {userRole === 'player' ? <PlayerLoginButton /> : <CourtOwnerLoginButton />}
-
-            <TouchableOpacity
-              style={styles.toggleButton}
-              onPress={toggleUserRole}
-            >
-              <Text style={styles.toggleButtonText}>
-                {userRole === 'player'
-                  ? 'Sou gestor de quadra'
-                  : 'Sou jogador'}
+            <TouchableOpacity style={styles.switchRoleButton} onPress={toggleUserRole}>
+              <Text style={userRole === 'player' ? playerStyles.switchRoleText : courtOwnerStyles.switchRoleText}>
+                {userRole === 'player' ? 'Entrar como Gestor' : 'Entrar como Jogador'}
               </Text>
             </TouchableOpacity>
-          </View>
-
-
-            <View style={styles.registerContainer}>
-                  <Text style={styles.registerText}>Não tem uma conta? </Text>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('Register', { initialRole: userRole })}
-                  >
-                    <Text
-                      style={[
-                        styles.registerLink,
-                        userRole === 'courtOwner' && courtOwnerStyles.registerLink
-                      ]}
-                    >
-                      Cadastre-se
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -329,56 +335,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
   },
-  scrollContainer: {
-    flexGrow: 1,
+  safeArea: {
+    flex: 1,
   },
   formContainer: {
-    padding: 20,
+    flex: 1,
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -80,
+  },
+  scrollContent: {
+    padding: 25,
+    paddingBottom: 40,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputIcon: {
+    paddingHorizontal: 12,
   },
   input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  passwordInput: {
     flex: 1,
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    color: '#333',
     fontSize: 16,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 15,
   },
   toggleButton: {
-    marginTop: 15,
-    padding: 10,
-    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  toggleButtonText: {
-    color: '#666',
-    fontSize: 16,
-  },
-    registerContainer: {
+  registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 25,
+    marginTop: 20,
+    marginBottom: 15,
   },
-  registerText: { color: '#777', fontSize: 14 },
-  registerLink: { color: '#37A0EC', fontSize: 14, fontWeight: '600' },
+  registerText: {
+    color: '#777',
+    fontSize: 15,
+  },
   switchRoleButton: {
     alignItems: 'center',
     paddingVertical: 12,
@@ -414,6 +412,20 @@ const playerStyles = StyleSheet.create({
     color: '#FFF',
     textAlign: 'center',
   },
+  inputLabel: {
+    fontSize: 16,
+    color: '#37A0EC',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+  },
   loginButtonContainer: {
     marginTop: 20,
   },
@@ -424,13 +436,20 @@ const playerStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonIcon: {
-    marginRight: 10,
-  },
   loginButtonText: {
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  registerLink: {
+    color: '#37A0EC',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  switchRoleText: {
+    color: '#37A0EC',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
@@ -460,6 +479,23 @@ const courtOwnerStyles = StyleSheet.create({
     color: '#FFF',
     textAlign: 'center',
   },
+  formContainer: {
+    backgroundColor: '#FFF',
+  },
+  inputLabel: {
+    fontSize: 16,
+    color: '#FF7014',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE0CC',
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+  },
   loginButtonContainer: {
     marginTop: 20,
   },
@@ -470,9 +506,6 @@ const courtOwnerStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonIcon: {
-    marginRight: 10,
-  },
   loginButtonText: {
     color: '#FFF',
     fontSize: 16,
@@ -482,6 +515,11 @@ const courtOwnerStyles = StyleSheet.create({
     color: '#FF7014',
     fontSize: 14,
     fontWeight: '600',
+  },
+  switchRoleText: {
+    color: '#FF7014',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
