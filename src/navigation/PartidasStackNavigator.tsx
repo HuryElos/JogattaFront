@@ -1,4 +1,4 @@
-// src/navigation/PartidasStackNavigator.js
+// src/navigation/PartidasStackNavigator.tsx
 
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -8,7 +8,13 @@ import PartidasScreen from '../screens/PartidasScreen';
 import LiveRoomScreen from '../features/jogos/screens/LiveRoomScreen';
 import JogosStackNavigator from './JogosStackNavigator';
 
-const Stack = createStackNavigator();
+export type RootStackParamList = {
+  PartidasList: undefined;
+  LiveRoom: { id_jogo: number };
+  JogosFlow: { screen: string };
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
 
 export default function PartidasStackNavigator() {
   return (

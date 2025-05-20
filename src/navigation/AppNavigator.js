@@ -81,19 +81,19 @@ function GeneralStackNavigator() {
       <Stack.Screen
         name="LiveRoom"
         component={LiveRoomScreen}
-        options={{ title: 'Sala ao Vivo' }}
+        options={{ title: 'Sala ao Vivo', headerShown: false }}
       />
 
       {/* Quadras (admin) */}
       <Stack.Screen
         name="CriarQuadra"
         component={CriarQuadraScreen}
-        options={{ title: 'Criar Quadra' }}
+        options={{ title: 'Criar Quadra', headerShown: false }}
       />
       <Stack.Screen
         name="GerenciarQuadra"
         component={GerenciarQuadraScreen}
-        options={{ title: 'Gerenciar Quadra' }}
+        options={{ title: 'Gerenciar Quadra', headerShown: false }} 
       />
 
       {/* Onboarding */}

@@ -11,6 +11,7 @@ import LiveRoomScreen from '../features/jogos/screens/LiveRoomScreen';
 import ManualJogoScreen from '../features/jogos/screens/ManualJogoScreen';
 import ManualDistributionScreen from '../features/jogos/screens/ManualDistributionScreen';
 import DefineTeamSizeScreen from '../features/jogos/screens/DefineTeamSizeScreen';
+import SelecionarQuadraScreen from '../features/jogos/screens/SelecionarQuadraScreen';
 
 // ➕ Importa a tela de pagamento
 import PagamentoScreen from '../features/jogos/screens/PagamentoScreen';
@@ -54,14 +55,21 @@ export default function JogosStackNavigator() {
       <Stack.Screen
         name="LiveRoom"
         component={LiveRoomScreen}
-        options={{ title: 'Sala ao Vivo' }}
+        options={{ title: 'Sala ao Vivo', headerShown: false }}
       />
 
       {/* Criação de jogo */}
       <Stack.Screen
         name="CriarJogo"
         component={CriarJogo}
-        options={{ title: 'Criar Jogo' }}
+        options={{ title: 'Criar Jogo',headerShown: false }}
+      />
+
+      {/* Seleção de Quadra */}
+      <Stack.Screen
+        name="SelecionarQuadra"
+        component={SelecionarQuadraScreen}
+        options={{ headerShown: false }}
       />
 
       {/* Convidar amigos */}
